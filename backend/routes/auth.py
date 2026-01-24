@@ -70,6 +70,8 @@ def register():
         }), 201
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': f'Registration failed: {str(e)}'

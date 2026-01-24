@@ -47,7 +47,10 @@ class User(UserMixin):
             INSERT INTO users (username, email, password_hash)
             VALUES (%s, %s, %s) RETURNING id
         """
-        user_id = execute_query(query, (username, email, password_hash), fetch_one=True)['id']
+        result = execute_query(query, (username, email, password_hash), fetch_one=True)
+        if not result:
+             raise Exception("Database insert failed: No ID returned")
+        user_id = result['id']
         return User.get_by_id(user_id)
     
     @staticmethod

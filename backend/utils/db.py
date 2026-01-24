@@ -16,7 +16,8 @@ def get_db_connection():
             user=Config.PG_USER,
             password=Config.PG_PASSWORD,
             dbname=Config.PG_DATABASE,
-            port=Config.PG_PORT
+            port=Config.PG_PORT,
+            sslmode='require' # Force SSL for Aiven
         )
         return connection
     except Exception as e:

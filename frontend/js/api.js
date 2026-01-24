@@ -15,8 +15,20 @@ const API = {
         
         try {
             const response = await fetch(url, config);
-            const data = await response.json();
-            return data;
+            
+            // Handle non-JSON responses (like 500 HTML pages)
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                const data = await response.json();
+                if (!response.ok && !data.success) {
+                    throw new Error(data.message || 'API request failed');
+                }
+                return data;
+            } else {
+                const text = await response.text();
+                console.error('API Non-JSON Response:', text);
+                throw new Error('Server error: Received non-JSON response');
+            }
         } catch (error) {
             console.error('API Error:', error);
             throw error;
