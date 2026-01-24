@@ -143,7 +143,10 @@ from utils.scheduler import scheduler
 # Start the background scheduler
 # Note: Only works on platforms that support long-running processes (Render, Railway)
 # Does NOT work on serverless (Vercel, AWS Lambda)
-scheduler.start()
+try:
+    scheduler.start()
+except Exception as e:
+    print(f"⚠️ Scheduler failed to start: {e}")
 
 
 if __name__ == '__main__':
