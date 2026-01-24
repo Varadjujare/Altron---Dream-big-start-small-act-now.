@@ -140,8 +140,11 @@ def server_error(e):
 
 from utils.scheduler import scheduler
 
-# Start the background scheduler
-scheduler.start()
+# Start the background scheduler ONLY in local development (not on Vercel)
+# Vercel serverless functions don't support background threads
+import os
+if not os.environ.get('VERCEL'):
+    scheduler.start()
 
 
 if __name__ == '__main__':
