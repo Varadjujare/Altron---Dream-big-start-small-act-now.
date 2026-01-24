@@ -1,12 +1,10 @@
 services:
-  # Backend Flask API
   - type: web
-    name: lifesync-backend
+    name: lifesync
     runtime: python
     region: oregon
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.4"
@@ -26,15 +24,3 @@ services:
         sync: false
       - key: SMTP_PASSWORD
         sync: false
-
-  # Frontend Static Site
-  - type: web
-    name: lifesync-frontend
-    runtime: static
-    rootDir: frontend
-    buildCommand: echo "No build needed"
-    staticPublishPath: .
-    routes:
-      - type: rewrite
-        source: /api/*
-        destination: https://lifesync-backend.onrender.com/api/*
