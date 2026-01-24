@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Create your Altron Dashboard account">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <title>Register - Altron Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <style>
+        .auth-background { position: fixed; inset: 0; background: var(--gradient-dark); overflow: hidden; z-index: -1; }
+        .auth-background::before { content: ''; position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(76, 175, 80, 0.15) 0%, transparent 70%); top: -200px; right: -200px; animation: float 6s ease-in-out infinite; }
+        .auth-background::after { content: ''; position: absolute; width: 400px; height: 400px; background: radial-gradient(circle, rgba(33, 150, 243, 0.1) 0%, transparent 70%); bottom: -100px; left: -100px; animation: float 8s ease-in-out infinite reverse; }
+        .auth-card { animation: fadeSlideUp 0.6s ease; }
+        .password-wrapper { position: relative; }
+        .password-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); }
+        .password-strength { height: 4px; border-radius: 2px; margin-top: 8px; background: var(--bg-tertiary); overflow: hidden; }
+        .password-strength-bar { height: 100%; transition: all 0.3s ease; }
+        .strength-weak { width: 33%; background: var(--error); }
+        .strength-medium { width: 66%; background: var(--warning); }
+        .strength-strong { width: 100%; background: var(--success); }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .auth-container {
+                padding: 16px;
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .auth-card {
+                width: 100%;
+                max-width: 400px;
+                padding: 24px 20px;
+                border-radius: 16px;
+            }
+            .auth-header {
+                text-align: center;
+                margin-bottom: 24px;
+            }
+            .auth-logo {
+                font-size: 48px;
+                margin-bottom: 12px;
+            }
+            .auth-title {
+                font-size: 24px;
+                margin-bottom: 8px;
+            }
+            .auth-subtitle {
+                font-size: 14px;
+            }
+            .form-group {
+                margin-bottom: 16px;
+            }
+            .form-label {
+                font-size: 13px;
+            }
+            .form-input {
+                padding: 12px 14px;
+                font-size: 16px; /* Prevent zoom on iOS */
+            }
+            .btn-lg {
+                padding: 14px 20px;
+                font-size: 16px;
+            }
+            .auth-footer {
+                margin-top: 20px;
+                font-size: 14px;
+                text-align: center;
+            }
+            /* Smaller background blobs on mobile */
+            .auth-background::before {
+                width: 300px;
+                height: 300px;
+                top: -100px;
+                right: -100px;
+            }
+            .auth-background::after {
+                width: 200px;
+                height: 200px;
+                bottom: -50px;
+                left: -50px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .auth-card {
+                padding: 20px 16px;
+            }
+            .auth-title {
+                font-size: 22px;
+            }
+            .form-input {
+                padding: 10px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-background"></div>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <img src="favicon.png" alt="Logo" class="auth-logo" style="width: 64px; height: 64px; object-fit: contain; margin-bottom: 12px; filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.3));">
+                <h1 class="auth-title">Create Account</h1>
+                <p class="auth-subtitle">Start your productivity journey</p>
+            </div>
+            <form id="registerForm" class="stagger-children">
+                <div class="form-group">
+                    <label class="form-label" for="username">Username</label>
+                    <input type="text" id="username" name="username" class="form-input" placeholder="johndoe" required minlength="3" maxlength="50">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="email">Email Address</label>
+                    <input type="email" id="email" name="email" class="form-input" placeholder="you@example.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required minlength="6" oninput="checkStrength()">
+                        <span class="password-toggle" onclick="togglePassword('password')">👁️</span>
+                    </div>
+                    <div class="password-strength"><div id="strengthBar" class="password-strength-bar"></div></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="confirmPassword">Confirm Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="confirmPassword" name="confirmPassword" class="form-input" placeholder="••••••••" required>
+                        <span class="password-toggle" onclick="togglePassword('confirmPassword')">👁️</span>
+                    </div>
+                </div>
+                <div id="errorMessage" class="alert alert-error hidden"></div>
+                <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">
+                    <span id="btnText">Create Account</span>
+                    <span id="btnSpinner" class="spinner sm hidden"></span>
+                </button>
+            </form>
+            <div class="auth-footer">Already have an account? <a href="index.html">Sign in</a></div>
+        </div>
+    </div>
+    <script src="js/theme.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        function togglePassword(id) { const el = document.getElementById(id); el.type = el.type === 'password' ? 'text' : 'password'; }
+        function checkStrength() {
+            const pwd = document.getElementById('password').value;
+            const bar = document.getElementById('strengthBar');
+            bar.className = 'password-strength-bar';
+            if (pwd.length >= 8 && /[A-Z]/.test(pwd) && /[0-9]/.test(pwd)) { bar.classList.add('strength-strong'); }
+            else if (pwd.length >= 6) { bar.classList.add('strength-medium'); }
+            else if (pwd.length > 0) { bar.classList.add('strength-weak'); }
+        }
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+            const errorDiv = document.getElementById('errorMessage');
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            if (password !== confirmPassword) { errorDiv.textContent = 'Passwords do not match'; errorDiv.classList.remove('hidden'); return; }
+            btn.disabled = true; btnText.textContent = 'Creating...'; btnSpinner.classList.remove('hidden'); errorDiv.classList.add('hidden');
+            try {
+                const result = await API.post('/api/auth/register', { 
+                    username: document.getElementById('username').value, 
+                    email: document.getElementById('email').value, 
+                    password: password 
+                });
+                if (result.success) { window.location.href = '/'; } else { errorDiv.textContent = result.message || 'Registration failed'; errorDiv.classList.remove('hidden'); }
+            } catch (err) { errorDiv.textContent = 'An error occurred'; errorDiv.classList.remove('hidden'); }
+            finally { btn.disabled = false; btnText.textContent = 'Create Account'; btnSpinner.classList.add('hidden'); }
+        });
+    </script>
+</body>
+</html>

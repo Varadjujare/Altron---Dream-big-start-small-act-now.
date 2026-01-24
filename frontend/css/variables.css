@@ -1,0 +1,158 @@
+/*
+ * LifeSync Dashboard - Glassmorphism & Neon Theme
+ * Updated: Phase 1 Visual Upgrade
+ */
+
+:root {
+    /* ========================================
+       Black & Green Theme (Restored)
+       ======================================== */
+    /* Backgrounds - Pure Black & Gray */
+    --bg-primary: #000000;     /* Pure Black */
+    --bg-secondary: #0a0a0a;   /* Almost Black */
+    --bg-tertiary: #111111;    /* Dark Gray */
+    --bg-card: rgba(20, 20, 20, 0.85); /* Darker, subtle glass */
+    --bg-hover: rgba(40, 40, 40, 0.5);
+    --bg-active: rgba(60, 60, 60, 0.5);
+
+    /* Text Colors */
+    --text-primary: #ffffff;
+    --text-secondary: #b0b0b0;
+    --text-tertiary: #888888;
+    --text-muted: #666666;
+    --text-inverse: #000000;
+
+    /* Green Accents (Restored) */
+    --accent-primary: #4CAF50;       /* Material Green */
+    --accent-primary-hover: #43A047;
+    --accent-primary-light: rgba(76, 175, 80, 0.15);
+    
+    --accent-secondary: #2196F3;     /* Blue (Secondary) */
+    --accent-secondary-hover: #1E88E5;
+    
+    --accent-tertiary: #FF9800;      /* Orange */
+
+    /* Glassmorphism Tokens (Darker) */
+    --glass-bg: rgba(0, 0, 0, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.08); /* Subtle white edge */
+    --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+    --glass-blur: blur(12px);
+
+    /* Status Colors */
+    --success: #4CAF50;
+    --success-light: rgba(76, 175, 80, 0.15);
+    --warning: #FF9800;
+    --warning-light: rgba(255, 152, 0, 0.15);
+    --error: #f44336;
+    --error-light: rgba(244, 67, 54, 0.15);
+    --info: #2196F3;
+    --info-light: rgba(33, 150, 243, 0.15);
+
+    /* Border Colors */
+    --border-light: rgba(255, 255, 255, 0.1);
+    --border-medium: rgba(255, 255, 255, 0.2);
+    --border-dark: rgba(255, 255, 255, 0.3);
+
+    /* Shadows */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.6);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.6);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.7);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.8);
+    --shadow-glow: 0 0 20px rgba(76, 175, 80, 0.2); /* Green glow */
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%); /* Green Gradient */
+    --gradient-secondary: linear-gradient(135deg, #2196F3 0%, #1565C0 100%);
+    --gradient-dark: linear-gradient(135deg, #111111 0%, #000000 100%);
+    --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+
+    /* Spacing System (Unchanged) */
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --space-xl: 2rem;
+    --space-2xl: 3rem;
+    --space-3xl: 4rem;
+
+    /* Typography */
+    --font-family: 'Poppins', 'Plus Jakarta Sans', 'Inter', sans-serif;
+    --font-heading: 'Poppins', 'Outfit', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 2rem;
+    --font-size-4xl: 3rem; 
+
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+
+    --line-height-tight: 1.2;
+    --line-height-normal: 1.6;
+    --line-height-relaxed: 1.8;
+
+    /* Border Radius */
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-2xl: 1.5rem;
+    --radius-full: 9999px;
+
+    /* Animation Timing */
+    --transition-fast: 150ms ease;
+    --transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: 500ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    /* Layout (Unchanged) */
+    --sidebar-width: 260px;
+    --sidebar-collapsed-width: 80px;
+    --header-height: 70px;
+    --max-content-width: 1400px;
+
+    /* Z-Index Scale */
+    --z-dropdown: 100;
+    --z-sticky: 200;
+    --z-fixed: 300;
+    --z-modal-backdrop: 400;
+    --z-modal: 500;
+    --z-tooltip: 700;
+}
+
+/* 
+ * Light Theme Overlay
+ * Optional: Used if user explicitly toggles to light mode, 
+ * but tailored to still feel modern.
+ */
+[data-theme="light"] {
+    --bg-primary: #F1F5F9;
+    --bg-secondary: #FFFFFF;
+    --bg-tertiary: #E2E8F0;
+    --bg-card: rgba(255, 255, 255, 0.8);
+    --bg-hover: #F8FAFC;
+    --bg-active: #E2E8F0;
+
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-tertiary: #64748B;
+    --text-muted: #94A3B8;
+    --text-inverse: #FFFFFF;
+
+    --glass-bg: rgba(255, 255, 255, 0.6);
+    --glass-border: rgba(0, 0, 0, 0.05);
+    
+    --border-light: #E2E8F0;
+    --border-medium: #CBD5E1;
+    
+    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}

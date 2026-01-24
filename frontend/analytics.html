@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <title>Analytics - Altron</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/navbar.css">
+    <style>
+        .chart-container { height: 200px; display: flex; align-items: flex-end; gap: 8px; padding: 16px 0; }
+        .chart-bar { flex: 1; background: var(--gradient-primary); border-radius: 8px 8px 0 0; transition: height 0.5s ease; min-width: 30px; position: relative; }
+        .chart-bar:hover { opacity: 0.8; }
+        .chart-bar::after { content: attr(data-value); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: 600; padding: 2px 4px; opacity: 0; transition: opacity 0.2s; }
+        .chart-bar:hover::after { opacity: 1; }
+        .chart-labels { display: flex; gap: 8px; justify-content: space-between; border-top: 1px solid var(--border-light); padding-top: 8px; }
+        .chart-label { flex: 1; text-align: center; font-size: 12px; color: var(--text-muted); }
+        .streak-card { text-align: center; padding: 32px; }
+        .streak-value { font-size: 64px; font-weight: 700; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; line-height: 1; }
+        .streak-label { font-size: 14px; color: var(--text-secondary); margin-top: 8px; }
+        @media (max-width: 768px) { .streak-value { font-size: 48px; } .streak-card { padding: 20px; } }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="top-nav">
+        <div class="nav-brand"><img src="favicon.png" alt="Logo" class="nav-brand-icon" style="padding: 0; background: transparent;"><span class="nav-brand-text">Altron</span></div>
+        <div class="nav-menu">
+            <a href="/home">🏠 Home</a>
+            <a href="/dashboard">📊 Dashboard</a>
+            <a href="/habits">✅ Habits</a>
+            <a href="/tasks">📝 Tasks</a>
+            <a href="/calendar">📅 Calendar</a>
+            <a href="/analytics" class="active">📈 Analytics</a>
+            <a href="/settings">⚙️ Settings</a>
+        </div>
+        <div class="nav-actions">
+            <button class="theme-toggle" onclick="Theme.toggle()"><span class="icon-sun">☀️</span><span class="icon-moon">🌙</span></button>
+            <div class="hamburger" onclick="toggleMobileMenu()"><span></span><span></span><span></span></div>
+        </div>
+    </nav>
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="/home">🏠 Home</a>
+        <a href="/dashboard">📊 Dashboard</a>
+        <a href="/habits">✅ Habits</a>
+        <a href="/tasks">📝 Tasks</a>
+        <a href="/calendar">📅 Calendar</a>
+        <a href="/analytics" class="active">📈 Analytics</a>
+        <a href="/settings">⚙️ Settings</a>
+        <a href="#" onclick="Auth.logout()" style="color: var(--error);">🚪 Logout</a>
+    </div>
+
+    <main class="main-wrapper">
+        <header class="page-header-simple">
+            <div><h1 class="page-title">Analytics</h1><p class="page-subtitle">Track your progress over time</p></div>
+        </header>
+
+        <div class="page-content page-enter">
+            <div class="bento-grid grid-cols-3 stagger-children">
+                <div class="card streak-card card-3d">
+                    <div class="stat-icon success" style="margin: 0 auto 16px;">🔥</div>
+                    <div class="streak-value" id="currentStreak">0</div>
+                    <div class="streak-label">Current Streak</div>
+                </div>
+                <div class="card streak-card card-3d">
+                    <div class="stat-icon info" style="margin: 0 auto 16px;">🏆</div>
+                    <div class="streak-value" id="bestStreak">0</div>
+                    <div class="streak-label">Best Streak</div>
+                </div>
+                <div class="card streak-card card-3d">
+                    <div class="stat-icon warning" style="margin: 0 auto 16px;">📊</div>
+                    <div class="streak-value" id="monthlyAvg">0%</div>
+                    <div class="streak-label">Monthly Average</div>
+                </div>
+            </div>
+
+            <div class="card mt-lg slide-in-up" style="animation-delay: 0.3s;">
+                <div class="card-header"><h3 class="card-title">Weekly Progress</h3></div>
+                <div class="card-body">
+                    <div class="chart-container" id="weeklyChart"></div>
+                    <div class="chart-labels" id="weeklyLabels"></div>
+                </div>
+            </div>
+
+            <div class="card mt-lg slide-in-up" style="animation-delay: 0.4s;">
+                <div class="card-header"><h3 class="card-title">Habit Streaks</h3></div>
+                <div class="card-body" id="habitStreaks"></div>
+            </div>
+
+            <!-- Reports Section -->
+            <div class="card mt-lg slide-in-up" style="animation-delay: 0.5s;">
+                <div class="card-header">
+                    <h3 class="card-title">📧 Automated Reports</h3>
+                </div>
+                <div class="card-body">
+                    <p class="text-secondary mb-md">
+                        Your progress reports are generated and sent automatically. No manual action required.
+                    </p>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                        <!-- Weekly Schedule -->
+                        <div style="background: var(--bg-tertiary); padding: 20px; border-radius: 12px; text-align: center; border: 1px solid var(--border-light);">
+                            <div style="font-size: 32px; margin-bottom: 12px;">📅</div>
+                            <h4 style="margin-bottom: 8px;">Weekly Report</h4>
+                            <p class="text-muted" style="font-size: 13px;">Every Sunday at 9:00 AM</p>
+                            <div class="badge badge-success mt-sm" style="display: inline-block;">✅ Active</div>
+                        </div>
+                        
+                        <!-- Monthly Schedule -->
+                        <div style="background: var(--bg-tertiary); padding: 20px; border-radius: 12px; text-align: center; border: 1px solid var(--border-light);">
+                            <div style="font-size: 32px; margin-bottom: 12px;">🗓️</div>
+                            <h4 style="margin-bottom: 8px;">Monthly Report</h4>
+                            <p class="text-muted" style="font-size: 13px;">1st of every Month</p>
+                            <div class="badge badge-success mt-sm" style="display: inline-block;">✅ Active</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/navbar.js"></script>
+    <script>
+        async function init() { if (!await Auth.requireAuth()) return; await loadAnalytics(); setInterval(loadAnalytics, 60000); }
+        
+        async function loadAnalytics() {
+            const [weekly, monthly, streaks] = await Promise.all([ API.get('/api/analytics/weekly'), API.get('/api/analytics/monthly'), API.get('/api/analytics/streaks') ]);
+            if (weekly.success) renderWeeklyChart(weekly);
+            if (monthly.success) document.getElementById('monthlyAvg').textContent = monthly.monthly_percentage + '%';
+            if (streaks.success) {
+                document.getElementById('currentStreak').textContent = streaks.totals.total_current_streak;
+                document.getElementById('bestStreak').textContent = streaks.totals.total_best_streak;
+                renderStreaks(streaks.habits);
+            }
+        }
+        
+        function renderWeeklyChart(data) {
+            const chart = document.getElementById('weeklyChart');
+            const labels = document.getElementById('weeklyLabels');
+            const maxVal = Math.max(...data.daily_stats.map(d => d.completed), 1);
+            chart.innerHTML = data.daily_stats.map((d, i) => { 
+                const height = (d.completed / maxVal) * 100; 
+                return `<div class="chart-bar chart-animate" style="height: ${height}%; animation-delay: ${i * 0.1}s" data-value="${d.completed}"></div>`; 
+            }).join('');
+            labels.innerHTML = data.daily_stats.map(d => `<div class="chart-label">${d.day_name}</div>`).join('');
+        }
+        
+        function renderStreaks(habits) {
+            const container = document.getElementById('habitStreaks');
+            if (!habits.length) { container.innerHTML = '<p class="text-muted">No habits tracked yet.</p>'; return; }
+            container.innerHTML = habits.map(h => `<div class="flex items-center justify-between mb-md" style="padding: 12px; background: var(--bg-tertiary); border-radius: 8px;"><span class="font-medium">${h.habit_name}</span><div class="flex gap-lg"><span class="text-muted">Current: <strong class="text-success">${h.current_streak}</strong></span><span class="text-muted">Best: <strong>${h.best_streak}</strong></span></div></div>`).join('');
+        }
+        
+
+        
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <title>Home - Altron Dashboard</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/loader.css">
+    <link rel="stylesheet" href="css/navbar.css">
+    <style>
+        /* Particle Network Canvas */
+        .particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: #000000;
+        }
+
+        /* Main Content Area */
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .home-content {
+            margin-top: 70px;
+            flex: 1;
+            padding: 40px 24px;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+            position: relative;
+            width: 100%;
+        }
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .hero-icon {
+            font-size: 80px;
+            margin-bottom: 24px;
+            animation: bounceFloat 3s ease-in-out infinite;
+            display: inline-block;
+        }
+        
+        @keyframes bounceFloat {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-20px) scale(1.1); }
+        }
+        
+        .hero h1 {
+            font-size: 48px;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #4CAF50, #2196F3, #9C27B0);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 5s ease infinite, fadeSlideUp 0.8s ease;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .hero p {
+            font-size: 20px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 32px;
+            animation: fadeSlideUp 0.8s ease 0.2s both;
+        }
+        
+        .hero-actions {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            animation: fadeSlideUp 0.8s ease 0.4s both;
+        }
+        
+        /* Liquid Fill Button Animation */
+        .hero-actions .btn-primary {
+            display: inline-block;
+            padding: 12px 24px;
+            border: 1px solid var(--accent-primary);
+            border-radius: 4px; /* Matching user request, but maintaining theme roundedness might be better? sticking to request */
+            transition: all 0.2s ease-in;
+            position: relative;
+            overflow: hidden;
+            font-size: 19px;
+            cursor: pointer;
+            color: white !important; /* Force white text for primary btn */
+            z-index: 1;
+            background: transparent; /* Override default gradient */
+            box-shadow: none;
+        }
+
+        .hero-actions .btn-primary:before {
+            content: "";
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%) scaleY(1) scaleX(1.25);
+            top: 100%;
+            width: 140%;
+            height: 180%;
+            background-color: rgba(0, 0, 0, 0.05);
+            border-radius: 50%;
+            display: block;
+            transition: all 0.5s 0.1s cubic-bezier(0.55, 0, 0.1, 1);
+            z-index: -1;
+        }
+
+        .hero-actions .btn-primary:after {
+            content: "";
+            position: absolute;
+            left: 55%;
+            transform: translateX(-50%) scaleY(1) scaleX(1.45);
+            top: 180%;
+            width: 160%;
+            height: 190%;
+            background-color: var(--accent-primary);
+            border-radius: 50%;
+            display: block;
+            transition: all 0.5s 0.1s cubic-bezier(0.55, 0, 0.1, 1);
+            z-index: -1;
+        }
+
+        .hero-actions .btn-primary:hover {
+            color: #ffffff !important;
+            border: 1px solid var(--accent-primary);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4); /* Glow effect */
+        }
+
+        .hero-actions .btn-primary:hover:before {
+            top: -35%;
+            background-color: var(--accent-primary);
+            transform: translateX(-50%) scaleY(1.3) scaleX(0.8);
+        }
+
+        .hero-actions .btn-primary:hover:after {
+            top: -45%;
+            background-color: var(--accent-primary);
+            transform: translateX(-50%) scaleY(1.3) scaleX(0.8);
+        }
+        
+        /* OLD Shimmer Animation Removed */
+        
+        /* Quick Links Grid */
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-top: 60px;
+        }
+        
+        .quick-link-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            position: relative;
+            overflow: hidden;
+            animation: fadeSlideUp 0.6s ease both;
+        }
+        
+        .quick-link-card:nth-child(1) { animation-delay: 0.1s; }
+        .quick-link-card:nth-child(2) { animation-delay: 0.2s; }
+        .quick-link-card:nth-child(3) { animation-delay: 0.3s; }
+        .quick-link-card:nth-child(4) { animation-delay: 0.4s; }
+        .quick-link-card:nth-child(5) { animation-delay: 0.5s; }
+        .quick-link-card:nth-child(6) { animation-delay: 0.6s; }
+        
+        .quick-link-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(33, 150, 243, 0.1));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .quick-link-card:hover {
+            transform: translateY(-12px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(76, 175, 80, 0.2);
+            border-color: var(--accent-primary);
+        }
+        
+        .quick-link-card:hover::before {
+            opacity: 1;
+        }
+        
+        .quick-link-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            transition: transform 0.3s ease;
+            display: inline-block;
+        }
+        
+        .quick-link-card:hover .quick-link-icon {
+            transform: scale(1.2) rotate(10deg);
+            animation: wiggle 0.5s ease;
+        }
+        
+        @keyframes wiggle {
+            0%, 100% { transform: scale(1.2) rotate(0deg); }
+            25% { transform: scale(1.2) rotate(-10deg); }
+            75% { transform: scale(1.2) rotate(10deg); }
+        }
+        
+        .quick-link-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            position: relative;
+        }
+        
+        .quick-link-desc {
+            color: var(--text-muted);
+            font-size: 14px;
+            position: relative;
+        }
+        
+        .quick-link-badge {
+            display: inline-block;
+            margin-top: 16px;
+            padding: 6px 16px;
+            background: var(--warning-light);
+            color: var(--warning);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        /* Responsive Hero */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 32px; }
+            .hero p { font-size: 16px; }
+            .hero-icon { font-size: 60px; }
+            .home-content { padding: 24px 16px; }
+        }
+        
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <!-- 5-Second Intro Loader -->
+    <div id="loader-overlay">
+        <div class="loader">
+          <span><span></span><span></span><span></span><span></span></span>
+          <div class="base">
+            <span></span>
+            <div class="face"></div>
+          </div>
+        </div>
+        <div class="longfazers">
+          <span></span><span></span><span></span><span></span>
+        </div>
+    </div>
+
+    <!-- Main Content Container with Opacity Transition -->
+    <div id="main-content-wrapper" style="opacity: 0; transition: opacity 1s ease;">
+        <!-- Interactive Particle Network Canvas -->
+        <canvas class="particle-canvas" id="particleCanvas"></canvas>
+    
+        <!-- Top Navigation Bar -->
+        <nav class="top-nav">
+            <div class="nav-brand">
+                <img src="favicon.png" alt="Logo" class="nav-brand-icon" style="padding: 0; background: transparent;">
+                <span class="nav-brand-text">Altron</span>
+            </div>
+            <div class="nav-menu">
+                <a href="/home" class="active">🏠 Home</a>
+                <a href="/dashboard">📊 Dashboard</a>
+                <a href="/habits">✅ Habits</a>
+                <a href="/tasks">📝 Tasks</a>
+                <a href="/calendar">📅 Calendar</a>
+                <a href="/analytics">📈 Analytics</a>
+                <a href="/settings">⚙️ Settings</a>
+            </div>
+            <div class="nav-actions">
+                <button class="theme-toggle" onclick="Theme.toggle()">
+                    <span class="icon-sun">☀️</span>
+                    <span class="icon-moon">🌙</span>
+                </button>
+                <div class="hamburger" onclick="toggleMobileMenu()">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+        </nav>
+        
+        <!-- Mobile Menu -->
+        <div class="mobile-menu" id="mobileMenu">
+            <a href="/home" class="active">🏠 Home</a>
+            <a href="/dashboard">📊 Dashboard</a>
+            <a href="/habits">✅ Habits</a>
+            <a href="/tasks">📝 Tasks</a>
+            <a href="/calendar">📅 Calendar</a>
+            <a href="/analytics">📈 Analytics</a>
+            <a href="/settings">⚙️ Settings</a>
+            <a href="#" onclick="Auth.logout()" style="color: var(--error);">🚪 Logout</a>
+        </div>
+        
+        <!-- Main Content -->
+        <main class="home-content">
+            <section class="hero">
+                <div class="hero-icon">🎯</div>
+                <h1>Welcome to Altron</h1>
+                <p class="typewriter-container">
+                    <span id="typewriterText"></span><span class="cursor">|</span>
+                </p>
+                <style>
+                    .typewriter-container {
+                        font-size: 20px;
+                        color: var(--text-secondary);
+                        max-width: 800px;
+                        margin: 0 auto 32px;
+                        min-height: 1.5em; /* Prevent layout shift */
+                    }
+                    .cursor {
+                        color: var(--accent-primary);
+                        animation: blink 1s step-end infinite;
+                        font-weight: bold;
+                    }
+                    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+                </style>
+                <div class="hero-actions">
+                    <a href="/dashboard" class="btn btn-primary btn-lg">Go to Dashboard</a>
+                    <a href="/habits" class="btn btn-secondary btn-lg">Track Habits</a>
+                </div>
+            </section>
+            
+            <section class="quick-links">
+                <a href="/dashboard" class="quick-link-card">
+                    <div class="quick-link-icon">📊</div>
+                    <div class="quick-link-title">Dashboard</div>
+                    <div class="quick-link-desc">View your daily progress and stats</div>
+                </a>
+                
+                <a href="/habits" class="quick-link-card">
+                    <div class="quick-link-icon">✅</div>
+                    <div class="quick-link-title">Habits</div>
+                    <div class="quick-link-desc">Track your daily habits with a visual grid</div>
+                </a>
+                
+                <a href="/tasks" class="quick-link-card">
+                    <div class="quick-link-icon">📝</div>
+                    <div class="quick-link-title">Tasks</div>
+                    <div class="quick-link-desc">Manage your to-do list</div>
+                </a>
+                
+                <a href="/calendar" class="quick-link-card">
+                    <div class="quick-link-icon">📅</div>
+                    <div class="quick-link-title">Calendar</div>
+                    <div class="quick-link-desc">View your activity by date</div>
+                </a>
+                
+                <a href="/analytics" class="quick-link-card">
+                    <div class="quick-link-icon">📈</div>
+                    <div class="quick-link-title">Analytics</div>
+                    <div class="quick-link-desc">See your progress over time</div>
+                </a>
+                
+                <a href="/settings" class="quick-link-card">
+                    <div class="quick-link-icon">⚙️</div>
+                    <div class="quick-link-title">Settings</div>
+                    <div class="quick-link-desc">Customize your experience</div>
+                    <span class="quick-link-badge">Coming Soon</span>
+                </a>
+            </section>
+        </main>
+        
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-left">
+                    <div class="footer-brand">
+                        <span>🎯</span> Altron
+                    </div>
+                    <div class="footer-copyright">
+                        Developed by Varad with ❤️ and ☕ in India.
+                    </div>
+                </div>
+                <div class="footer-right">
+                    <div class="footer-thought-container" style="position: relative; overflow: hidden;">
+                        <span class="footer-thought" style="
+                            font-family: 'Inter', sans-serif; 
+                            font-style: italic; 
+                            font-weight: 600; 
+                            font-size: 16px; 
+                            background: linear-gradient(to right, #4CAF50, #2196F3, #4CAF50); 
+                            background-size: 200% auto; 
+                            -webkit-background-clip: text; 
+                            -webkit-text-fill-color: transparent; 
+                            animation: shine 3s linear infinite;
+                        ">"Dream big, start small, act now."</span>
+                        <style>@keyframes shine { to { background-position: 200% center; } }</style>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+    
+    <script src="js/api.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/navbar.js"></script>
+    <script>
+        async function init() {
+            if (!await Auth.requireAuth()) return;
+            const user = Auth.getUser();
+            if (user) {
+                document.querySelector('.hero h1').textContent = `Welcome, ${user.username}!`;
+            }
+            initParticleNetwork();
+            initTypewriter();
+            
+            initParticleNetwork();
+            initTypewriter();
+            
+            // Loader Logic
+            const loader = document.getElementById('loader-overlay');
+            const mainWrapper = document.getElementById('main-content-wrapper');
+            
+            // Check if intro has already been shown in this session
+            if (sessionStorage.getItem('introShown')) {
+                // Already shown, hide immediately and show content
+                if (loader) loader.style.display = 'none';
+                if (mainWrapper) {
+                    mainWrapper.style.transition = 'none'; // Disable transition for instant show
+                    mainWrapper.style.opacity = '1';
+                }
+            } else {
+                // First time, show animation
+                setTimeout(() => {
+                    if (loader && mainWrapper) {
+                        // Fade out loader
+                        loader.style.opacity = '0';
+                        loader.style.transition = 'opacity 0.5s ease';
+                        
+                        // Fade in main content
+                        mainWrapper.style.opacity = '1';
+                        
+                        setTimeout(() => {
+                            loader.style.display = 'none';
+                            // Mark as shown for this session
+                            sessionStorage.setItem('introShown', 'true');
+                        }, 500); // Wait for transition
+                    }
+                }, 3000); // 3 Seconds Delay
+            }
+        }
+        
+        // Typewriter Effect for Motivational Quotes
+        function initTypewriter() {
+            const textElement = document.getElementById('typewriterText');
+            const quotes = [
+                "Your personal productivity command center.",
+                "Track habits, manage tasks, and achieve your goals.",
+                "Small habits make a big difference.",
+                "Consistency is key to success.",
+                "Your future is created by what you do today.",
+                "Stay focused, stay productive."
+            ];
+            
+            let quoteIndex = 0;
+            let charIndex = 0;
+            let isDeleting = false;
+            let typeSpeed = 50;
+            
+            function type() {
+                const currentQuote = quotes[quoteIndex];
+                
+                if (isDeleting) {
+                    textElement.textContent = currentQuote.substring(0, charIndex - 1);
+                    charIndex--;
+                    typeSpeed = 30; // Faster deletion
+                } else {
+                    textElement.textContent = currentQuote.substring(0, charIndex + 1);
+                    charIndex++;
+                    typeSpeed = 80; // Normal typing speed
+                }
+                
+                if (!isDeleting && charIndex === currentQuote.length) {
+                    isDeleting = true;
+                    typeSpeed = 2000; // Pause at end
+                } else if (isDeleting && charIndex === 0) {
+                    isDeleting = false;
+                    quoteIndex = (quoteIndex + 1) % quotes.length;
+                    typeSpeed = 500; // Pause before new quote
+                }
+                
+                setTimeout(type, typeSpeed);
+            }
+            
+            type();
+        }
+        
+        // Interactive Particle Network Animation
+        function initParticleNetwork() {
+            const canvas = document.getElementById('particleCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Green color configuration (matching accent color)
+            const particleColor = { r: 76, g: 175, b: 80 }; // #4CAF50
+            
+            // Configuration
+            const config = {
+                particleCount: 100,
+                connectionDistance: 120,
+                mouseRadius: 150,
+                particleMinSize: 1,
+                particleMaxSize: 3,
+                baseSpeed: 0.5,
+                returnSpeed: 0.1
+            };
+            
+            let particles = [];
+            let mouse = { x: null, y: null };
+            
+            // Resize canvas
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                createParticles();
+            }
+            
+            // Create particles
+            function createParticles() {
+                particles = [];
+                for (let i = 0; i < config.particleCount; i++) {
+                    particles.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        baseX: 0,
+                        baseY: 0,
+                        vx: (Math.random() - 0.5) * config.baseSpeed,
+                        vy: (Math.random() - 0.5) * config.baseSpeed,
+                        size: Math.random() * (config.particleMaxSize - config.particleMinSize) + config.particleMinSize,
+                        opacity: Math.random() * 0.5 + 0.3,
+                        density: Math.random() * 30 + 1
+                    });
+                }
+                particles.forEach(p => { p.baseX = p.x; p.baseY = p.y; });
+            }
+            
+            // Mouse events
+            canvas.addEventListener('mousemove', (e) => {
+                mouse.x = e.clientX;
+                mouse.y = e.clientY;
+            });
+            
+            canvas.addEventListener('mouseleave', () => {
+                mouse.x = null;
+                mouse.y = null;
+            });
+            
+            // Animation loop
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                particles.forEach((p, i) => {
+                    // Mouse repulsion
+                    if (mouse.x !== null && mouse.y !== null) {
+                        const dx = mouse.x - p.x;
+                        const dy = mouse.y - p.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (dist < config.mouseRadius) {
+                            const force = (config.mouseRadius - dist) / config.mouseRadius;
+                            const forceX = (dx / dist) * force * p.density * 0.5;
+                            const forceY = (dy / dist) * force * p.density * 0.5;
+                            p.x -= forceX;
+                            p.y -= forceY;
+                        }
+                    }
+                    
+                    // Return to base position
+                    p.x += (p.baseX - p.x) * config.returnSpeed;
+                    p.y += (p.baseY - p.y) * config.returnSpeed;
+                    
+                    // Move base position
+                    p.baseX += p.vx;
+                    p.baseY += p.vy;
+                    
+                    // Wrap around edges
+                    if (p.baseX < 0) p.baseX = canvas.width;
+                    if (p.baseX > canvas.width) p.baseX = 0;
+                    if (p.baseY < 0) p.baseY = canvas.height;
+                    if (p.baseY > canvas.height) p.baseY = 0;
+                    
+                    // Draw connections
+                    particles.forEach((p2, j) => {
+                        if (i >= j) return;
+                        const dx = p.x - p2.x;
+                        const dy = p.y - p2.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (dist < config.connectionDistance) {
+                            const opacity = (1 - dist / config.connectionDistance) * 0.3;
+                            ctx.beginPath();
+                            ctx.moveTo(p.x, p.y);
+                            ctx.lineTo(p2.x, p2.y);
+                            ctx.strokeStyle = `rgba(${particleColor.r}, ${particleColor.g}, ${particleColor.b}, ${opacity})`;
+                            ctx.lineWidth = 1;
+                            ctx.stroke();
+                        }
+                    });
+                    
+                    // Draw particle
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(${particleColor.r}, ${particleColor.g}, ${particleColor.b}, ${p.opacity})`;
+                    ctx.fill();
+                });
+                
+                requestAnimationFrame(animate);
+            }
+            
+            resize();
+            window.addEventListener('resize', resize);
+            animate();
+        }
+        
+        init();
+    </script>
+</body>
+</html>

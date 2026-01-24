@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <title>Settings - Altron</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/navbar.css">
+    <style>
+        .settings-section { margin-bottom: 32px; }
+        .settings-section-title { font-size: 14px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
+        .settings-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: var(--bg-tertiary); border-radius: 12px; margin-bottom: 8px; flex-wrap: wrap; gap: 12px; }
+        .settings-item-info h4 { font-weight: 500; margin-bottom: 4px; }
+        .settings-item-info p { font-size: 13px; color: var(--text-muted); margin: 0; }
+        .theme-options { display: flex; gap: 12px; flex-wrap: wrap; }
+        .theme-option { padding: 12px 24px; border-radius: 8px; cursor: pointer; border: 2px solid var(--border-light); transition: all 0.2s; }
+        .theme-option.active { border-color: var(--accent-primary); background: var(--accent-primary-light); }
+        .theme-option:hover { border-color: var(--accent-primary); }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="top-nav">
+        <div class="nav-brand"><img src="favicon.png" alt="Logo" class="nav-brand-icon" style="padding: 0; background: transparent;"><span class="nav-brand-text">Altron</span></div>
+        <div class="nav-menu">
+            <a href="/home">🏠 Home</a>
+            <a href="/dashboard">📊 Dashboard</a>
+            <a href="/habits">✅ Habits</a>
+            <a href="/tasks">📝 Tasks</a>
+            <a href="/calendar">📅 Calendar</a>
+            <a href="/analytics">📈 Analytics</a>
+            <a href="/settings" class="active">⚙️ Settings</a>
+        </div>
+        <div class="nav-actions">
+            <button class="theme-toggle" onclick="Theme.toggle()"><span class="icon-sun">☀️</span><span class="icon-moon">🌙</span></button>
+            <div class="hamburger" onclick="toggleMobileMenu()"><span></span><span></span><span></span></div>
+        </div>
+    </nav>
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="/home">🏠 Home</a>
+        <a href="/dashboard">📊 Dashboard</a>
+        <a href="/habits">✅ Habits</a>
+        <a href="/tasks">📝 Tasks</a>
+        <a href="/calendar">📅 Calendar</a>
+        <a href="/analytics">📈 Analytics</a>
+        <a href="/settings" class="active">⚙️ Settings</a>
+        <a href="#" onclick="Auth.logout()" style="color: var(--error);">🚪 Logout</a>
+    </div>
+
+    <main class="main-wrapper">
+        <header class="page-header-simple">
+            <div><h1 class="page-title">Settings</h1><p class="page-subtitle">Customize your experience</p></div>
+        </header>
+
+        <div class="page-content page-enter">
+            <div class="settings-section">
+                <div class="settings-section-title">Appearance</div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="settings-item">
+                            <div class="settings-item-info"><h4>Theme</h4><p>Choose your preferred color theme</p></div>
+                            <div class="theme-options">
+                                <div class="theme-option" data-theme="light" onclick="setTheme('light')">☀️ Light</div>
+                                <div class="theme-option" data-theme="dark" onclick="setTheme('dark')">🌙 Dark</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-section-title">Account</div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="settings-item"><div class="settings-item-info"><h4>Username</h4><p id="displayUsername">-</p></div></div>
+                        <div class="settings-item"><div class="settings-item-info"><h4>Email</h4><p id="displayEmail">-</p></div></div>
+                        <div class="settings-item"><div class="settings-item-info"><h4>Member Since</h4><p id="displayCreated">-</p></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-section-title">Danger Zone</div>
+                <div class="card" style="border-color: var(--error);">
+                    <div class="card-body">
+                        <div class="settings-item">
+                            <div class="settings-item-info"><h4>Logout</h4><p>Sign out of your account</p></div>
+                            <button class="btn btn-danger" onclick="Auth.logout()">Logout</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/navbar.js"></script>
+    <script>
+        async function init() { if (!await Auth.requireAuth()) return; loadUserDetails(); updateThemeButtons(); }
+        
+        function loadUserDetails() {
+            const user = Auth.getUser();
+            if (user) {
+                document.getElementById('displayUsername').textContent = user.username;
+                document.getElementById('displayEmail').textContent = user.email;
+                document.getElementById('displayCreated').textContent = user.created_at ? new Date(user.created_at).toLocaleDateString() : '-';
+            }
+        }
+        
+        function setTheme(theme) { Theme.apply(theme); updateThemeButtons(); Toast.success(`Theme changed to ${theme}`); }
+        
+        function updateThemeButtons() {
+            const current = Theme.get();
+            document.querySelectorAll('.theme-option').forEach(btn => { btn.classList.toggle('active', btn.dataset.theme === current); });
+        }
+        
+        init();
+    </script>
+</body>
+</html>

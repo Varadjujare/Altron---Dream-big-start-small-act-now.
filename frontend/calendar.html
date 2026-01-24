@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <title>Calendar - Altron</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/navbar.css">
+    <style>
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .calendar-header { text-align: center; padding: 12px; font-weight: 600; color: var(--text-muted); font-size: 12px; text-transform: uppercase; }
+        .calendar-day { aspect-ratio: 1; padding: 8px; border-radius: 12px; background: var(--bg-tertiary); cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; min-height: 80px; }
+        .calendar-day:hover { background: var(--bg-hover); transform: scale(1.05); }
+        .calendar-day.today { border: 2px solid var(--accent-primary); }
+        .calendar-day.other-month { opacity: 0.3; }
+        .calendar-day.selected { background: var(--accent-primary-light); border: 2px solid var(--accent-primary); }
+        .day-number { font-weight: 600; font-size: 14px; }
+        .day-progress { margin-top: auto; height: 4px; background: var(--bg-active); border-radius: 2px; overflow: hidden; }
+        .day-progress-fill { height: 100%; background: var(--success); }
+        .month-nav { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .month-display { font-size: 20px; font-weight: 600; min-width: 180px; text-align: center; }
+        .day-details { margin-top: 24px; }
+        @media (max-width: 768px) {
+            .calendar-day { min-height: 60px; padding: 4px; }
+            .day-number { font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="top-nav">
+        <div class="nav-brand"><img src="favicon.png" alt="Logo" class="nav-brand-icon" style="padding: 0; background: transparent;"><span class="nav-brand-text">Altron</span></div>
+        <div class="nav-menu">
+            <a href="/home">🏠 Home</a>
+            <a href="/dashboard">📊 Dashboard</a>
+            <a href="/habits">✅ Habits</a>
+            <a href="/tasks">📝 Tasks</a>
+            <a href="/calendar" class="active">📅 Calendar</a>
+            <a href="/analytics">📈 Analytics</a>
+            <a href="/settings">⚙️ Settings</a>
+        </div>
+        <div class="nav-actions">
+            <button class="theme-toggle" onclick="Theme.toggle()"><span class="icon-sun">☀️</span><span class="icon-moon">🌙</span></button>
+            <div class="hamburger" onclick="toggleMobileMenu()"><span></span><span></span><span></span></div>
+        </div>
+    </nav>
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="/home">🏠 Home</a>
+        <a href="/dashboard">📊 Dashboard</a>
+        <a href="/habits">✅ Habits</a>
+        <a href="/tasks">📝 Tasks</a>
+        <a href="/calendar" class="active">📅 Calendar</a>
+        <a href="/analytics">📈 Analytics</a>
+        <a href="/settings">⚙️ Settings</a>
+        <a href="#" onclick="Auth.logout()" style="color: var(--error);">🚪 Logout</a>
+    </div>
+
+    <main class="main-wrapper">
+        <header class="page-header-simple">
+            <div><h1 class="page-title">Calendar</h1><p class="page-subtitle">View your progress by date</p></div>
+        </header>
+
+        <div class="page-content page-enter">
+            <div class="card">
+                <div class="card-header">
+                    <div class="month-nav">
+                        <button class="btn btn-secondary btn-sm" onclick="changeMonth(-1)">← Prev</button>
+                        <span class="month-display" id="monthDisplay"></span>
+                        <button class="btn btn-secondary btn-sm" onclick="changeMonth(1)">Next →</button>
+                    </div>
+                    <button class="btn btn-ghost" onclick="goToToday()">Today</button>
+                </div>
+                <div class="card-body">
+                    <div class="calendar-grid">
+                        <div class="calendar-header">Sun</div>
+                        <div class="calendar-header">Mon</div>
+                        <div class="calendar-header">Tue</div>
+                        <div class="calendar-header">Wed</div>
+                        <div class="calendar-header">Thu</div>
+                        <div class="calendar-header">Fri</div>
+                        <div class="calendar-header">Sat</div>
+                    </div>
+                    <div class="calendar-grid" id="calendarDays"></div>
+                </div>
+            </div>
+            <div class="day-details" id="dayDetails"></div>
+        </div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/navbar.js"></script>
+    <script>
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth();
+        let selectedDate = DateUtils.today();
+        let monthData = {};
+        
+        async function init() { if (!await Auth.requireAuth()) return; await loadCalendar(); }
+        
+        async function loadCalendar() {
+            updateMonthDisplay();
+            const result = await API.get(`/api/analytics/monthly?year=${currentYear}&month=${currentMonth + 1}`);
+            if (result.success) monthData = result.daily_data || {};
+            renderCalendar();
+            loadDayDetails(selectedDate);
+        }
+        
+        function updateMonthDisplay() { document.getElementById('monthDisplay').textContent = `${DateUtils.getMonthName(currentMonth)} ${currentYear}`; }
+        
+        function changeMonth(delta) {
+            currentMonth += delta;
+            if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+            if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+            loadCalendar();
+        }
+        
+        function goToToday() { currentYear = new Date().getFullYear(); currentMonth = new Date().getMonth(); selectedDate = DateUtils.today(); loadCalendar(); }
+        
+        function renderCalendar() {
+            const container = document.getElementById('calendarDays');
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = DateUtils.getDaysInMonth(currentYear, currentMonth);
+            const daysInPrevMonth = DateUtils.getDaysInMonth(currentYear, currentMonth - 1);
+            const today = DateUtils.today();
+            let html = '';
+            
+            for (let i = firstDay - 1; i >= 0; i--) { html += `<div class="calendar-day other-month"><span class="day-number">${daysInPrevMonth - i}</span></div>`; }
+            
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const isToday = dateStr === today;
+                const isSelected = dateStr === selectedDate;
+                const dayData = monthData[dateStr] || { percentage: 0 };
+                html += `<div class="calendar-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}" onclick="selectDate('${dateStr}')" style="animation: fadeSlideUp 0.3s ease forwards; animation-delay: ${(d * 0.01)}s; opacity: 0;"><span class="day-number">${d}</span><div class="day-progress"><div class="day-progress-fill" style="width: ${dayData.percentage}%"></div></div></div>`;
+            }
+            
+            const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+            for (let i = 1; i <= totalCells - firstDay - daysInMonth; i++) { html += `<div class="calendar-day other-month"><span class="day-number">${i}</span></div>`; }
+            
+            container.innerHTML = html;
+        }
+        
+        async function selectDate(dateStr) { selectedDate = dateStr; renderCalendar(); await loadDayDetails(dateStr); }
+        
+        async function loadDayDetails(dateStr) {
+            const [habitsRes, tasksRes] = await Promise.all([ API.get(`/api/habits/status?date=${dateStr}`), API.get(`/api/tasks?date=${dateStr}`) ]);
+            
+            const container = document.getElementById('dayDetails');
+            const displayDate = new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+            
+            let html = `<h2 class="text-xl font-bold mb-md" style="margin-top: 32px;">${displayDate}</h2>`;
+            
+            // Lists Section
+            html += `<div class="bento-grid grid-cols-2 gap-md stagger-children">`;
+            
+            // Habits List
+            html += `<div class="card" style="background: linear-gradient(145deg, #0a0a0a, #000); border: 1px solid var(--border-light);">
+                        <div class="card-header"><h3 class="card-title">Habits</h3></div>
+                        <div class="card-body">`;
+            if (habitsRes.success && habitsRes.habits.length) {
+                html += habitsRes.habits.map(h => `
+                    <div class="flex items-center gap-md mb-sm p-sm rounded hover-bg" style="border-bottom: 1px solid rgba(255,255,255,0.05)">
+                        <span style="color: var(--success); font-weight: bold;">${h.is_completed ? '✓' : '○'}</span>
+                        <span class="${h.is_completed ? 'text-muted' : ''}">${h.name}</span>
+                    </div>`).join('');
+            } else { html += '<p class="text-muted">No habits recorded.</p>'; }
+            html += `</div></div>`;
+
+            // Tasks List
+            html += `<div class="card" style="background: linear-gradient(145deg, #0a0a0a, #000); border: 1px solid var(--border-light);">
+                        <div class="card-header"><h3 class="card-title">Tasks</h3></div>
+                        <div class="card-body">`;
+            if (tasksRes.success && tasksRes.tasks.length) {
+                html += tasksRes.tasks.map(t => `
+                    <div class="flex items-center gap-md mb-sm p-sm rounded hover-bg" style="border-bottom: 1px solid rgba(255,255,255,0.05)">
+                        <span style="color: var(--success); font-weight: bold;">${t.is_completed ? '✓' : '○'}</span>
+                        <span class="${t.is_completed ? 'text-muted' : ''}">${t.title}</span>
+                    </div>`).join('');
+            } else { html += '<p class="text-muted">No tasks recorded.</p>'; }
+            html += `</div></div></div>`; // End Grid
+
+            // Graphs Section
+            const habitCount = habitsRes.success ? habitsRes.habits.length : 0;
+            const habitDone = habitsRes.success ? habitsRes.habits.filter(h => h.is_completed).length : 0;
+            const habitPct = habitCount ? (habitDone / habitCount) * 100 : 0;
+
+            const taskCount = tasksRes.success ? tasksRes.tasks.length : 0;
+            const taskDone = tasksRes.success ? tasksRes.tasks.filter(t => t.is_completed).length : 0;
+            const taskPct = taskCount ? (taskDone / taskCount) * 100 : 0;
+
+            html += `
+            <div class="card mt-lg stagger-children" style="animation-delay: 0.2s">
+                <div class="card-header"><h3 class="card-title">Daily Performance Analysis</h3></div>
+                <div class="card-body" style="padding: 24px;">
+                    
+                    <!-- Habits Bar -->
+                    <div class="mb-lg">
+                        <div class="flex justify-between items-end mb-xs">
+                            <span class="text-sm font-medium">Habits Completion</span>
+                            <span class="text-success font-bold">${Math.round(habitPct)}%</span>
+                        </div>
+                        <div style="height: 12px; background: var(--bg-secondary); border-radius: 6px; overflow: hidden; position: relative;">
+                            <div style="height: 100%; width: ${habitPct}%; background: var(--success); border-radius: 6px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);"></div>
+                        </div>
+                        <div class="text-xs text-muted mt-xs flex justify-between">
+                            <span>${habitDone} of ${habitCount} completed</span>
+                            <span>${habitCount - habitDone} remaining</span>
+                        </div>
+                    </div>
+
+                    <!-- Tasks Bar -->
+                    <div>
+                        <div class="flex justify-between items-end mb-xs">
+                            <span class="text-sm font-medium">Tasks Completion</span>
+                            <span class="text-info font-bold">${Math.round(taskPct)}%</span>
+                        </div>
+                        <div style="height: 12px; background: var(--bg-secondary); border-radius: 6px; overflow: hidden; position: relative;">
+                            <div style="height: 100%; width: ${taskPct}%; background: var(--info); border-radius: 6px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);"></div>
+                        </div>
+                         <div class="text-xs text-muted mt-xs flex justify-between">
+                            <span>${taskDone} of ${taskCount} completed</span>
+                            <span>${taskCount - taskDone} remaining</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>`;
+
+            container.innerHTML = html;
+        }
+        
+        init();
+    </script>
+</body>
+</html>

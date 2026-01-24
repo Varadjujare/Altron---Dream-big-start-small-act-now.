@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <title>Habits - Altron</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/navbar.css">
+    <style>
+        .habit-grid { display: grid; gap: 2px; overflow-x: auto; }
+        .habit-grid-header { display: contents; }
+        .habit-grid-row { display: contents; }
+        .habit-name-cell { padding: 8px 12px; background: var(--bg-tertiary); font-weight: 500; white-space: nowrap; min-width: 150px; position: sticky; left: 0; z-index: 2; }
+        .day-header { text-align: center; padding: 8px 4px; font-size: 12px; color: var(--text-muted); min-width: 32px; }
+        .day-header.weekend { color: var(--warning); }
+        .day-header.today { background: var(--accent-primary-light); border-radius: 4px; color: var(--accent-primary); font-weight: 600; }
+        .habit-cell { width: 32px; height: 32px; border: 2px solid var(--border-light); border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; background: var(--bg-card); }
+        .habit-cell:hover { transform: scale(1.15); border-color: var(--accent-primary); }
+        .habit-cell.completed { background: var(--success); border-color: var(--success); color: white; }
+        .habit-cell.future { opacity: 0.3; cursor: not-allowed; }
+        .month-nav { display: flex; align-items: center; gap: 16px; }
+        .month-display { font-size: 18px; font-weight: 600; min-width: 150px; text-align: center; }
+        .week-header-row { display: contents; }
+        .week-label { text-align: center; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 4px; border-radius: 4px 4px 0 0; }
+        .week-label.week-1 { background: linear-gradient(135deg, #a8e6cf, #88d8b0); color: #1a5a3c; }
+        .week-label.week-2 { background: linear-gradient(135deg, #87ceeb, #6bb3d9); color: #1a4a6b; }
+        .week-label.week-3 { background: linear-gradient(135deg, #ffb3ba, #ff9aa2); color: #8b3a42; }
+        .week-label.week-4 { background: linear-gradient(135deg, #ffd6a5, #ffbe76); color: #8b5a2b; }
+        .week-label.week-5 { background: linear-gradient(135deg, #d4a5ff, #c792ea); color: #4a2a6b; }
+        .week-spacer { min-width: 150px; background: transparent; position: sticky; left: 0; z-index: 2; }
+        .day-separator { border-left: 2px solid var(--border-medium); }
+        
+        /* Progress Stats Section */
+        .progress-stats-section { margin-top: 16px; border-top: 1px solid var(--border-light); padding-top: 16px; }
+        .stats-row { display: grid; gap: 2px; align-items: center; margin-bottom: 4px; }
+        .stats-label { padding: 6px 12px; background: var(--bg-tertiary); font-weight: 600; font-size: 12px; min-width: 150px; position: sticky; left: 0; z-index: 2; color: var(--text-secondary); }
+        .stats-cell { text-align: center; padding: 6px 4px; font-size: 11px; min-width: 32px; font-weight: 500; }
+        .stats-cell.progress-cell { color: var(--accent-primary); }
+        .stats-cell.done-cell { color: var(--success); }
+        .stats-cell.notdone-cell { color: var(--text-muted); }
+        
+        /* Area Chart Styles */
+        .chart-wrapper { display: flex; gap: 12px; }
+        .chart-y-axis { display: flex; flex-direction: column; justify-content: space-between; font-size: 11px; color: var(--text-muted); padding: 0 8px; min-width: 40px; text-align: right; }
+        .area-chart { flex: 1; height: 200px; background: var(--bg-tertiary); border-radius: 8px; overflow: visible; position: relative; }
+        .area-chart svg { display: block; overflow: visible; }
+        .chart-area { fill: url(#areaGradient); opacity: 0.8; }
+        .chart-line { fill: none; stroke: var(--success); stroke-width: 2; }
+        .chart-grid-line { stroke: var(--border-light); stroke-width: 1; stroke-dasharray: 4; }
+        .chart-point { fill: var(--success); stroke: white; stroke-width: 2; cursor: pointer; opacity: 0; transition: all 0.2s ease; }
+        .chart-point:hover { opacity: 1; r: 8; }
+        .area-chart:hover .chart-point { opacity: 0.6; }
+        .area-chart:hover .chart-point:hover { opacity: 1; }
+
+        /* Responsive Mobile Styles */
+        @media (max-width: 768px) {
+            /* Page Header */
+            .page-header-simple { 
+                flex-direction: column; 
+                align-items: flex-start; 
+                gap: 12px; 
+                padding: 16px;
+            }
+            .page-header-simple .btn { width: 100%; }
+            .page-title { font-size: 24px; }
+            .page-subtitle { font-size: 14px; }
+            
+            /* Card Header - Stack title and nav vertically */
+            .card-header { 
+                flex-direction: column; 
+                align-items: flex-start !important; 
+                gap: 12px; 
+            }
+            .card-title { font-size: 16px; margin-bottom: 0; }
+            
+            /* Month Navigation - Full width */
+            .month-nav { 
+                width: 100%; 
+                justify-content: space-between; 
+            }
+            .month-display { 
+                font-size: 14px; 
+                min-width: auto; 
+                flex: 1; 
+            }
+            .month-nav .btn { 
+                padding: 6px 10px; 
+                font-size: 12px; 
+            }
+            
+            /* Compact Grid on Mobile */
+            .habit-cell { width: 28px; height: 28px; font-size: 12px; }
+            .day-header { font-size: 10px; min-width: 28px; padding: 4px 2px; }
+            .stats-cell { min-width: 28px; font-size: 9px; }
+            .habit-name-cell { 
+                min-width: 100px; 
+                font-size: 12px; 
+                padding: 6px 8px; 
+                /* Remove sticky on mobile - scrolls with grid */
+                position: static;
+                box-shadow: none; 
+            }
+            .stats-label { 
+                min-width: 100px; 
+                font-size: 10px;
+                /* Remove sticky on mobile - scrolls with grid */
+                position: static;
+                box-shadow: none; 
+            }
+            .week-spacer {
+                position: static;
+            }
+            .week-label { font-size: 8px; padding: 4px 2px; }
+            .week-spacer { min-width: 100px; }
+            
+            .habit-grid { gap: 1px; }
+            
+            /* Progress Stats Section */
+            .progress-stats-section { margin-top: 12px; padding-top: 12px; }
+            
+            /* Chart adjustments - Horizontally scrollable on mobile */
+            .chart-wrapper { 
+                flex-direction: row; /* Keep Y-axis on left */
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            .chart-y-axis { 
+                flex-direction: column; /* Keep vertical */
+                min-width: 35px; 
+                font-size: 10px;
+                flex-shrink: 0; /* Don't shrink */
+            }
+            .area-chart { 
+                height: 180px; 
+                min-width: 600px; /* Force wider chart - scrollable */
+                flex-shrink: 0;
+            }
+        }
+        
+        /* Extra small screens */
+        @media (max-width: 480px) {
+            .habit-cell { width: 24px; height: 24px; font-size: 10px; border-width: 1px; }
+            .day-header { font-size: 9px; min-width: 24px; }
+            .stats-cell { min-width: 24px; font-size: 8px; }
+            .habit-name-cell { min-width: 80px; font-size: 11px; padding: 4px 6px; }
+            .stats-label { min-width: 80px; font-size: 9px; }
+            .week-spacer { min-width: 80px; }
+            .week-label { font-size: 7px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="top-nav">
+        <div class="nav-brand"><img src="favicon.png" alt="Logo" class="nav-brand-icon" style="padding: 0; background: transparent;"><span class="nav-brand-text">Altron</span></div>
+        <div class="nav-menu">
+            <a href="/home">🏠 Home</a>
+            <a href="/dashboard">📊 Dashboard</a>
+            <a href="/habits" class="active">✅ Habits</a>
+            <a href="/tasks">📝 Tasks</a>
+            <a href="/calendar">📅 Calendar</a>
+            <a href="/analytics">📈 Analytics</a>
+            <a href="/settings">⚙️ Settings</a>
+        </div>
+        <div class="nav-actions">
+            <button class="theme-toggle" onclick="Theme.toggle()"><span class="icon-sun">☀️</span><span class="icon-moon">🌙</span></button>
+            <div class="hamburger" onclick="toggleMobileMenu()"><span></span><span></span><span></span></div>
+        </div>
+    </nav>
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="/home">🏠 Home</a>
+        <a href="/dashboard">📊 Dashboard</a>
+        <a href="/habits" class="active">✅ Habits</a>
+        <a href="/tasks">📝 Tasks</a>
+        <a href="/calendar">📅 Calendar</a>
+        <a href="/analytics">📈 Analytics</a>
+        <a href="/settings">⚙️ Settings</a>
+        <a href="#" onclick="Auth.logout()" style="color: var(--error);">🚪 Logout</a>
+    </div>
+
+    <main class="main-wrapper">
+        <header class="page-header-simple">
+            <div><h1 class="page-title">Habit Tracker</h1><p class="page-subtitle">Track your daily habits</p></div>
+            <button class="btn btn-primary" onclick="openAddModal()">+ Add Habit</button>
+        </header>
+
+        <div class="page-content page-enter">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Monthly Grid</h3>
+                    <div class="month-nav">
+                        <button class="btn btn-secondary btn-sm" onclick="changeMonth(-1)">← Prev</button>
+                        <span class="month-display" id="monthDisplay"></span>
+                        <button class="btn btn-secondary btn-sm" onclick="changeMonth(1)">Next →</button>
+                    </div>
+                </div>
+                <div class="card-body" style="overflow-x: auto;">
+                    <div id="habitGrid" class="habit-grid"></div>
+                    
+                    <!-- Progress Stats Section -->
+                    <div id="progressStats" class="progress-stats-section"></div>
+                </div>
+            </div>
+            
+            <!-- Progress Area Chart -->
+            <div class="card mt-lg">
+                <div class="card-header">
+                    <h3 class="card-title">Progress Chart</h3>
+                </div>
+                <div class="card-body">
+                    <div class="chart-wrapper">
+                        <div class="chart-y-axis">
+                            <span>100%</span>
+                            <span>75%</span>
+                            <span>50%</span>
+                            <span>25%</span>
+                            <span>0%</span>
+                        </div>
+                        <div class="area-chart" id="progressChart">
+                            <svg id="chartSvg" width="100%" height="200" preserveAspectRatio="none"></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Habit Modal -->
+    <div class="modal-backdrop" id="modalBackdrop" onclick="closeModal()"></div>
+    <div class="modal" id="habitModal">
+        <div class="modal-header"><h3 class="modal-title">Add New Habit</h3><span class="modal-close" onclick="closeModal()">✕</span></div>
+        <div class="modal-body">
+            <form id="habitForm">
+                <div class="form-group"><label class="form-label">Habit Name</label><input type="text" id="habitName" class="form-input" placeholder="e.g., Wake up at 7 AM" required></div>
+                <div class="form-group"><label class="form-label">Description (optional)</label><textarea id="habitDesc" class="form-input" rows="2"></textarea></div>
+                <div class="form-group"><label class="form-label">Color</label><input type="color" id="habitColor" value="#4CAF50" class="form-input" style="height: 40px; padding: 4px;"></div>
+            </form>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveHabit()">Save Habit</button></div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/navbar.js"></script>
+    <script>
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth();
+        let habits = [];
+        let logs = {};
+        
+        async function init() {
+            if (!await Auth.requireAuth()) return;
+            await loadHabits();
+        }
+        
+        async function loadHabits() {
+            updateMonthDisplay();
+            const [habitsRes, logsRes] = await Promise.all([
+                API.get('/api/habits'),
+                API.get(`/api/habits/logs?year=${currentYear}&month=${currentMonth + 1}`)
+            ]);
+            if (habitsRes.success) habits = habitsRes.habits;
+            if (logsRes.success) { logs = {}; logsRes.habits.forEach(h => { logs[h.id] = h.completed_dates || []; }); }
+            renderGrid();
+        }
+        
+        function updateMonthDisplay() { document.getElementById('monthDisplay').textContent = `${DateUtils.getMonthName(currentMonth)} ${currentYear}`; }
+        
+        function changeMonth(delta) {
+            currentMonth += delta;
+            if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+            if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+            loadHabits();
+        }
+        
+        function renderGrid() {
+            const grid = document.getElementById('habitGrid');
+            const daysInMonth = DateUtils.getDaysInMonth(currentYear, currentMonth);
+            const today = DateUtils.today();
+            const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+            grid.style.gridTemplateColumns = `150px repeat(${daysInMonth}, 32px)`;
+            
+            const weekInfo = [];
+            for (let d = 1; d <= daysInMonth; d++) {
+                const date = new Date(currentYear, currentMonth, d);
+                const weekNum = Math.ceil((d + firstDayOfMonth) / 7);
+                weekInfo.push({ day: d, week: weekNum, dayOfWeek: date.getDay() });
+            }
+            
+            let html = '<div class="week-header-row"><div class="week-spacer"></div>';
+            let currentWeek = 0;
+            for (let d = 0; d < daysInMonth; d++) {
+                if (weekInfo[d].week !== currentWeek) { currentWeek = weekInfo[d].week; }
+                const daysInThisWeek = weekInfo.filter(w => w.week === currentWeek).length;
+                const midPoint = Math.floor(daysInThisWeek / 2);
+                const dayIndexInWeek = weekInfo.slice(0, d + 1).filter(w => w.week === currentWeek).length - 1;
+                if (dayIndexInWeek === midPoint) {
+                    html += `<div class="week-label week-${currentWeek}">Week ${currentWeek}</div>`;
+                } else {
+                    html += `<div class="week-label week-${currentWeek}"></div>`;
+                }
+            }
+            html += '</div>';
+            
+            html += '<div class="habit-grid-header"><div class="habit-name-cell">Habit</div>';
+            for (let d = 1; d <= daysInMonth; d++) {
+                const date = new Date(currentYear, currentMonth, d);
+                const dateStr = DateUtils.format(date);
+                const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                const isToday = dateStr === today;
+                html += `<div class="day-header ${isWeekend ? 'weekend' : ''} ${isToday ? 'today' : ''}">${d}<br>${dayName.charAt(0)}</div>`;
+            }
+            html += '</div>';
+            
+            habits.forEach((habit, index) => {
+                html += `<div class="habit-grid-row" style="animation: fadeSlideUp 0.3s ease forwards; animation-delay: ${index * 0.05}s; opacity: 0;"><div class="habit-name-cell" style="border-left: 4px solid ${habit.color}">${habit.name}</div>`;
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                    const isCompleted = (logs[habit.id] || []).includes(dateStr);
+                    const isFuture = dateStr > today;
+                    html += `<div class="habit-cell ${isCompleted ? 'completed' : ''} ${isFuture ? 'future' : ''}" data-habit="${habit.id}" data-date="${dateStr}" onclick="${isFuture ? '' : 'toggleCell(this)'}">${isCompleted ? '✓' : ''}</div>`;
+                }
+                html += '</div>';
+            });
+            
+            if (habits.length === 0) html = '<div class="empty-state"><div class="empty-state-icon">✅</div><h3 class="empty-state-title">No habits yet</h3><p>Add your first habit to start tracking!</p></div>';
+            grid.innerHTML = html;
+            
+            // Render progress stats and chart
+            if (habits.length > 0) {
+                renderProgressStats();
+                renderAreaChart();
+            }
+        }
+        
+        function renderProgressStats() {
+            const daysInMonth = DateUtils.getDaysInMonth(currentYear, currentMonth);
+            const today = DateUtils.today();
+            const totalHabits = habits.length;
+            const statsContainer = document.getElementById('progressStats');
+            
+            // Calculate daily stats
+            const dailyStats = [];
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                let done = 0;
+                habits.forEach(habit => {
+                    if ((logs[habit.id] || []).includes(dateStr)) done++;
+                });
+                const notDone = totalHabits - done;
+                const percentage = totalHabits > 0 ? Math.round((done / totalHabits) * 100) : 0;
+                const isFuture = dateStr > today;
+                dailyStats.push({ day: d, done, notDone, percentage, isFuture });
+            }
+            
+            // Build stats rows HTML
+            let html = '';
+            statsContainer.style.display = 'grid';
+            statsContainer.style.gridTemplateColumns = `150px repeat(${daysInMonth}, 32px)`;
+            
+            // Progress row
+            html += '<div class="stats-label">Progress</div>';
+            dailyStats.forEach(s => {
+                html += `<div class="stats-cell progress-cell">${s.isFuture ? '-' : s.percentage + '%'}</div>`;
+            });
+            
+            // Done row
+            html += '<div class="stats-label">Done</div>';
+            dailyStats.forEach(s => {
+                html += `<div class="stats-cell done-cell">${s.isFuture ? '-' : s.done}</div>`;
+            });
+            
+            // Not Done row
+            html += '<div class="stats-label">Not Done</div>';
+            dailyStats.forEach(s => {
+                html += `<div class="stats-cell notdone-cell">${s.isFuture ? '-' : s.notDone}</div>`;
+            });
+            
+            statsContainer.innerHTML = html;
+            
+            // Store for chart
+            window.dailyStatsData = dailyStats;
+        }
+        
+        function renderAreaChart() {
+            const stats = window.dailyStatsData || [];
+            const svg = document.getElementById('chartSvg');
+            const width = svg.parentElement.offsetWidth || 800;
+            const height = 200;
+            
+            svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+            
+            // Filter out future dates
+            const pastStats = stats.filter(s => !s.isFuture);
+            if (pastStats.length === 0) {
+                svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="var(--text-muted)">No data yet</text>';
+                return;
+            }
+            
+            const padding = 20;
+            const chartWidth = width - (padding * 2);
+            const chartHeight = height - (padding * 2);
+            const stepX = chartWidth / (stats.length - 1 || 1);
+            
+            // Build points array
+            const points = [];
+            stats.forEach((s, i) => {
+                const x = padding + (i * stepX);
+                const y = padding + chartHeight - (s.isFuture ? 0 : (s.percentage / 100) * chartHeight);
+                points.push({ x, y, isFuture: s.isFuture });
+            });
+            
+            // Generate smooth curve using Catmull-Rom spline converted to Bezier
+            function getSmoothPath(pts) {
+                if (pts.length < 2) return '';
+                
+                let path = `M ${pts[0].x} ${pts[0].y}`;
+                
+                for (let i = 0; i < pts.length - 1; i++) {
+                    const p0 = pts[Math.max(0, i - 1)];
+                    const p1 = pts[i];
+                    const p2 = pts[i + 1];
+                    const p3 = pts[Math.min(pts.length - 1, i + 2)];
+                    
+                    // Control points for cubic Bezier
+                    const tension = 0.3;
+                    const cp1x = p1.x + (p2.x - p0.x) * tension;
+                    const cp1y = p1.y + (p2.y - p0.y) * tension;
+                    const cp2x = p2.x - (p3.x - p1.x) * tension;
+                    const cp2y = p2.y - (p3.y - p1.y) * tension;
+                    
+                    path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+                }
+                
+                return path;
+            }
+            
+            const smoothLinePath = getSmoothPath(points);
+            
+            // Area path (add bottom corners to close the shape)
+            const areaPath = smoothLinePath + 
+                ` L ${points[points.length - 1].x} ${padding + chartHeight}` +
+                ` L ${points[0].x} ${padding + chartHeight} Z`;
+            
+            // Grid lines
+            let gridLines = '';
+            [0, 25, 50, 75, 100].forEach(p => {
+                const y = padding + chartHeight - (p / 100) * chartHeight;
+                gridLines += `<line class="chart-grid-line" x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" />`;
+            });
+            
+            // Data points for hover
+            let dataPoints = '';
+            points.forEach((pt, i) => {
+                if (!stats[i].isFuture) {
+                    const s = stats[i];
+                    dataPoints += `
+                        <circle class="chart-point" cx="${pt.x}" cy="${pt.y}" r="6" 
+                            data-day="${s.day}" data-percentage="${s.percentage}" 
+                            data-done="${s.done}" data-notdone="${s.notDone}"
+                            onmouseenter="showChartTooltip(evt)" onmouseleave="hideChartTooltip()" />
+                    `;
+                }
+            });
+            
+            svg.innerHTML = `
+                <defs>
+                    <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:0.6" />
+                        <stop offset="100%" style="stop-color:#4CAF50;stop-opacity:0.1" />
+                    </linearGradient>
+                </defs>
+                ${gridLines}
+                <path class="chart-area" d="${areaPath}" />
+                <path class="chart-line" d="${smoothLinePath}" />
+                ${dataPoints}
+            `;
+        }
+        
+        function showChartTooltip(evt) {
+            const circle = evt.target;
+            const day = circle.getAttribute('data-day');
+            const percentage = circle.getAttribute('data-percentage');
+            const done = circle.getAttribute('data-done');
+            const notDone = circle.getAttribute('data-notdone');
+            
+            // Create tooltip if doesn't exist
+            let tooltip = document.getElementById('chartTooltip');
+            if (!tooltip) {
+                tooltip = document.createElement('div');
+                tooltip.id = 'chartTooltip';
+                tooltip.style.cssText = 'position: fixed; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 8px; padding: 10px 14px; box-shadow: var(--shadow-lg); z-index: 1000; pointer-events: none; font-size: 13px;';
+                document.body.appendChild(tooltip);
+            }
+            
+            tooltip.innerHTML = `
+                <div style="font-weight: 600; margin-bottom: 4px;">Day ${day}</div>
+                <div style="color: var(--accent-primary);">Progress: ${percentage}%</div>
+                <div style="color: var(--success);">Done: ${done}</div>
+                <div style="color: var(--text-muted);">Not Done: ${notDone}</div>
+            `;
+            tooltip.style.display = 'block';
+            
+            const rect = circle.getBoundingClientRect();
+            tooltip.style.left = (rect.left + 15) + 'px';
+            tooltip.style.top = (rect.top - 60) + 'px';
+        }
+        
+        function hideChartTooltip() {
+            const tooltip = document.getElementById('chartTooltip');
+            if (tooltip) tooltip.style.display = 'none';
+        }
+        
+        async function toggleCell(cell) {
+            const habitId = cell.dataset.habit;
+            const date = cell.dataset.date;
+            cell.classList.add('completing');
+            const result = await API.post(`/api/habits/${habitId}/toggle`, { date });
+            if (result.success) {
+                if (result.result.completed) { cell.classList.add('completed'); cell.innerHTML = '✓'; }
+                else { cell.classList.remove('completed'); cell.innerHTML = ''; }
+            }
+            setTimeout(() => cell.classList.remove('completing'), 500);
+        }
+        
+        function openAddModal() { document.getElementById('modalBackdrop').classList.add('active'); document.getElementById('habitModal').classList.add('active'); }
+        function closeModal() { document.getElementById('modalBackdrop').classList.remove('active'); document.getElementById('habitModal').classList.remove('active'); document.getElementById('habitForm').reset(); }
+        
+        async function saveHabit() {
+            const result = await API.post('/api/habits', { name: document.getElementById('habitName').value, description: document.getElementById('habitDesc').value, color: document.getElementById('habitColor').value });
+            if (result.success) { closeModal(); loadHabits(); Toast.success('Habit added!'); }
+            else { Toast.error(result.message); }
+        }
+        
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Altron Dashboard - Your personal productivity command center">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <title>Login - Altron Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <style>
+        .auth-background {
+            position: fixed;
+            inset: 0;
+            background: var(--gradient-dark);
+            overflow: hidden;
+            z-index: -1;
+        }
+        .auth-background::before {
+            content: '';
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(76, 175, 80, 0.15) 0%, transparent 70%);
+            top: -200px;
+            right: -200px;
+            animation: float 6s ease-in-out infinite;
+        }
+        .auth-background::after {
+            content: '';
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(33, 150, 243, 0.1) 0%, transparent 70%);
+            bottom: -100px;
+            left: -100px;
+            animation: float 8s ease-in-out infinite reverse;
+        }
+        .auth-card { animation: fadeSlideUp 0.6s ease; }
+        .password-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); }
+        .password-wrapper { position: relative; }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .auth-container {
+                padding: 16px;
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .auth-card {
+                width: 100%;
+                max-width: 400px;
+                padding: 24px 20px;
+                border-radius: 16px;
+            }
+            .auth-header {
+                text-align: center;
+                margin-bottom: 24px;
+            }
+            .auth-logo {
+                font-size: 48px;
+                margin-bottom: 12px;
+            }
+            .auth-title {
+                font-size: 24px;
+                margin-bottom: 8px;
+            }
+            .auth-subtitle {
+                font-size: 14px;
+            }
+            .form-group {
+                margin-bottom: 16px;
+            }
+            .form-label {
+                font-size: 13px;
+            }
+            .form-input {
+                padding: 12px 14px;
+                font-size: 16px; /* Prevent zoom on iOS */
+            }
+            .btn-lg {
+                padding: 14px 20px;
+                font-size: 16px;
+            }
+            .auth-footer {
+                margin-top: 20px;
+                font-size: 14px;
+                text-align: center;
+            }
+            /* Smaller background blobs on mobile */
+            .auth-background::before {
+                width: 300px;
+                height: 300px;
+                top: -100px;
+                right: -100px;
+            }
+            .auth-background::after {
+                width: 200px;
+                height: 200px;
+                bottom: -50px;
+                left: -50px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .auth-card {
+                padding: 20px 16px;
+            }
+            .auth-title {
+                font-size: 22px;
+            }
+            .form-input {
+                padding: 10px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-background"></div>
+    
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <img src="favicon.png" alt="Logo" class="auth-logo" style="width: 64px; height: 64px; object-fit: contain; margin-bottom: 12px; filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.3));">
+                <h1 class="auth-title">Welcome Back</h1>
+                <p class="auth-subtitle">Sign in to your Altron Dashboard</p>
+            </div>
+            
+            <form id="loginForm" class="stagger-children">
+                <div class="form-group">
+                    <label class="form-label" for="email">Email Address</label>
+                    <input type="email" id="email" name="email" class="form-input" placeholder="you@example.com" required autocomplete="email">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+                        <span class="password-toggle" onclick="togglePassword()">👁️</span>
+                    </div>
+                </div>
+                
+                <div class="form-group" style="display: flex; justify-content: space-between; align-items: center;">
+                    <label class="checkbox-wrapper">
+                        <input type="checkbox" id="remember" class="checkbox-input">
+                        <span>Remember me</span>
+                    </label>
+                </div>
+                
+                <div id="errorMessage" class="alert alert-error hidden"></div>
+                
+                <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">
+                    <span id="btnText">Sign In</span>
+                    <span id="btnSpinner" class="spinner sm hidden"></span>
+                </button>
+            </form>
+            
+            <div class="auth-footer">
+                Don't have an account? <a href="register.html">Create one</a>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/theme.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        // Check if already logged in
+        (async () => {
+            const auth = await API.get('/api/auth/check');
+            if (auth.success && auth.authenticated) {
+                window.location.href = '/home';
+            }
+        })();
+        
+        function togglePassword() {
+            const pwd = document.getElementById('password');
+            pwd.type = pwd.type === 'password' ? 'text' : 'password';
+        }
+        
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = e.target.querySelector('button[type="submit"]');
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+            const errorDiv = document.getElementById('errorMessage');
+            
+            btn.disabled = true;
+            btnText.textContent = 'Signing in...';
+            btnSpinner.classList.remove('hidden');
+            errorDiv.classList.add('hidden');
+            
+            try {
+                const result = await API.post('/api/auth/login', {
+                    email: document.getElementById('email').value,
+                    password: document.getElementById('password').value,
+                    remember: document.getElementById('remember').checked
+                });
+                
+                if (result.success) {
+                    localStorage.setItem('user', JSON.stringify(result.user));
+                    window.location.href = '/home';
+                } else {
+                    errorDiv.textContent = result.message || 'Login failed';
+                    errorDiv.classList.remove('hidden');
+                }
+            } catch (err) {
+                errorDiv.textContent = 'An error occurred. Please try again.';
+                errorDiv.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = 'Sign In';
+                btnSpinner.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

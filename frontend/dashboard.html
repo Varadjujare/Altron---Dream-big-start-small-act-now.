@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <title>Dashboard - Altron</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/navbar.css">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <img src="favicon.png" alt="Logo" class="nav-brand-icon" style="padding: 0; background: transparent;">
+            <span class="nav-brand-text">Altron</span>
+        </div>
+        <div class="nav-menu">
+            <a href="/home">🏠 Home</a>
+            <a href="/dashboard" class="active">📊 Dashboard</a>
+            <a href="/habits">✅ Habits</a>
+            <a href="/tasks">📝 Tasks</a>
+            <a href="/calendar">📅 Calendar</a>
+            <a href="/analytics">📈 Analytics</a>
+            <a href="/settings">⚙️ Settings</a>
+        </div>
+        <div class="nav-actions">
+            <button class="theme-toggle" onclick="Theme.toggle()">
+                <span class="icon-sun">☀️</span>
+                <span class="icon-moon">🌙</span>
+            </button>
+            <div class="hamburger" onclick="toggleMobileMenu()">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+    </nav>
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="/home">🏠 Home</a>
+        <a href="/dashboard" class="active">📊 Dashboard</a>
+        <a href="/habits">✅ Habits</a>
+        <a href="/tasks">📝 Tasks</a>
+        <a href="/calendar">📅 Calendar</a>
+        <a href="/analytics">📈 Analytics</a>
+        <a href="/settings">⚙️ Settings</a>
+        <a href="#" onclick="Auth.logout()" style="color: var(--error);">🚪 Logout</a>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-wrapper">
+        <header class="page-header-simple">
+            <div>
+                <h1 class="page-title">Dashboard</h1>
+                <p class="page-subtitle" id="currentDate"></p>
+            </div>
+        </header>
+
+        <div class="page-content page-enter">
+            <!-- Bento Stats Grid -->
+            <div class="bento-grid grid-cols-4 stagger-children" id="statsGrid">
+                <div class="card stat-card card-3d">
+                    <div class="stat-icon success">📊</div>
+                    <div class="stat-value" id="overallProgress">0%</div>
+                    <div class="stat-label">Today's Progress</div>
+                </div>
+                <div class="card stat-card card-3d">
+                    <div class="stat-icon info">✅</div>
+                    <div class="stat-value" id="habitsCompleted">0/0</div>
+                    <div class="stat-label">Habits Completed</div>
+                </div>
+                <div class="card stat-card card-3d">
+                    <div class="stat-icon warning">📝</div>
+                    <div class="stat-value" id="tasksCompleted">0/0</div>
+                    <div class="stat-label">Tasks Done</div>
+                </div>
+                <div class="card stat-card card-3d">
+                    <div class="stat-icon success">🔥</div>
+                    <div class="stat-value" id="currentStreak">0</div>
+                    <div class="stat-label">Day Streak</div>
+                </div>
+            </div>
+
+            <!-- Bento Main Grid -->
+            <div class="bento-grid grid-cols-3 stagger-children" style="animation-delay: 0.3s;">
+                <!-- Main Progress (Spans 2 columns) -->
+                <div class="card span-col-2">
+                    <div class="card-header">
+                        <h3 class="card-title">Weekly Overview</h3>
+                        <span class="badge badge-success" id="progressBadge">0%</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="progress-bar xl mb-md">
+                            <div class="progress-bar-fill" id="progressBar" style="width: 0%"></div>
+                        </div>
+                        <p class="text-secondary text-sm">Keep up the momentum! You're doing great this week.</p>
+                    </div>
+                </div>
+
+                <!-- Date Card (Spans 1 column) -->
+                <div class="card date-display flex-col justify-center items-center text-center">
+                    <div class="stat-icon info" style="margin:0; font-size: 1.5rem;">📅</div>
+                    <h2 id="bentoDate" style="margin: 5px 0 0 0; font-size: 1.8rem;">--</h2>
+                    <span id="bentoDay" class="text-secondary text-sm">Today</span>
+                    
+                    <div class="flex gap-md mt-md w-full justify-center">
+                        <!-- Habits Progress -->
+                        <div class="flex flex-col items-center">
+                            <div class="progress-ring-wrapper" style="position: relative; width: 60px; height: 60px;">
+                                <svg class="progress-ring" width="60" height="60">
+                                    <circle stroke="var(--bg-tertiary)" stroke-width="4" fill="transparent" r="26" cx="30" cy="30"/>
+                                    <circle id="habitRing" stroke="var(--accent-primary)" stroke-width="4" fill="transparent" r="26" cx="30" cy="30" style="stroke-dasharray: 163; stroke-dashoffset: 163; transition: stroke-dashoffset 1s ease; transform: rotate(-90deg); transform-origin: 50% 50%;"/>
+                                </svg>
+                                <div id="habitRingText" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: bold;">0%</div>
+                            </div>
+                            <span class="text-xs text-muted mt-xs">Habits</span>
+                        </div>
+                        
+                        <!-- Tasks Progress -->
+                         <div class="flex flex-col items-center">
+                            <div class="progress-ring-wrapper" style="position: relative; width: 60px; height: 60px;">
+                                <svg class="progress-ring" width="60" height="60">
+                                    <circle stroke="var(--bg-tertiary)" stroke-width="4" fill="transparent" r="26" cx="30" cy="30"/>
+                                    <circle id="taskRing" stroke="var(--info)" stroke-width="4" fill="transparent" r="26" cx="30" cy="30" style="stroke-dasharray: 163; stroke-dashoffset: 163; transition: stroke-dashoffset 1s ease; transform: rotate(-90deg); transform-origin: 50% 50%;"/>
+                                </svg>
+                                <div id="taskRingText" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: bold;">0%</div>
+                            </div>
+                            <span class="text-xs text-muted mt-xs">Tasks</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Habits (Spans 1 column, Row 2) -->
+                <div class="card span-row-2">
+                    <div class="card-header">
+                        <h3 class="card-title">Habits</h3>
+                        <a href="/habits" class="btn btn-sm btn-ghost">All</a>
+                    </div>
+                    <div class="card-body" id="todayHabits">
+                        <div class="empty-state"><div class="spinner"></div></div>
+                    </div>
+                </div>
+
+                <!-- Tasks (Spans 2 columns, Row 2) -->
+                <div class="card span-col-2">
+                    <div class="card-header">
+                        <h3 class="card-title">Today's Tasks</h3>
+                        <a href="/tasks" class="btn btn-sm btn-ghost">All</a>
+                    </div>
+                    <div class="card-body" id="todayTasks">
+                        <div class="empty-state"><div class="spinner"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- SVG Filter for Gooey Checkbox -->
+    <svg style="position: absolute; width: 0; height: 0; pointer-events: none;">
+      <defs>
+        <filter id="goo-12">
+          <feGaussianBlur result="blur" stdDeviation="4" in="SourceGraphic"></feGaussianBlur>
+          <feColorMatrix result="goo-12" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -7" mode="matrix" in="blur"></feColorMatrix>
+          <feBlend in2="goo-12" in="SourceGraphic"></feBlend>
+        </filter>
+      </defs>
+    </svg>
+
+    <script src="js/api.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/navbar.js"></script>
+    <script src="js/command-palette.js"></script>
+    <script>
+        let refreshInterval;
+        
+        async function init() {
+            if (!await Auth.requireAuth()) return;
+            
+            const now = new Date();
+            // Update Header Date
+            document.getElementById('currentDate').textContent = DateUtils.format(now, 'display');
+            
+            // Update Bento Date Card
+            document.getElementById('bentoDate').textContent = now.getDate();
+            document.getElementById('bentoDay').textContent = now.toLocaleDateString('en-US', { weekday: 'long' });
+
+            await loadDashboard();
+            refreshInterval = setInterval(loadDashboard, 30000);
+        }
+        
+        async function loadDashboard() {
+            try {
+                const [overview, habits, tasks] = await Promise.all([
+                    API.get('/api/analytics/overview'),
+                    API.get('/api/habits/status?date=' + DateUtils.today()),
+                    API.get('/api/tasks?date=' + DateUtils.today())
+                ]);
+                if (overview.success) updateStats(overview);
+                if (habits.success) renderHabits(habits.habits);
+                if (tasks.success) renderTasks(tasks.tasks);
+            } catch (err) { console.error('Dashboard load error:', err); }
+        }
+        
+        function updateStats(data) {
+            animateValue('overallProgress', data.overall.percentage + '%');
+            animateValue('habitsCompleted', data.habits.completed + '/' + data.habits.total);
+            animateValue('tasksCompleted', data.tasks.completed + '/' + data.tasks.total);
+            document.getElementById('progressBar').style.width = data.overall.percentage + '%';
+            document.getElementById('progressBadge').textContent = data.overall.percentage + '%';
+            
+            // Update Circular Rings
+            const habitPct = data.habits.total > 0 ? (data.habits.completed / data.habits.total) * 100 : 0;
+            const taskPct = data.tasks.total > 0 ? (data.tasks.completed / data.tasks.total) * 100 : 0;
+            
+            updateRing('habitRing', 'habitRingText', habitPct);
+            updateRing('taskRing', 'taskRingText', taskPct);
+        }
+        
+        function updateRing(ringId, textId, percentage) {
+            const ring = document.getElementById(ringId);
+            const text = document.getElementById(textId);
+            const circumference = 163;
+            const offset = circumference - (percentage / 100) * circumference;
+            
+            ring.style.strokeDashoffset = offset;
+            text.textContent = Math.round(percentage) + '%';
+        }
+        
+        function animateValue(id, value) {
+            const el = document.getElementById(id);
+            el.classList.add('counter-animate');
+            el.textContent = value;
+            setTimeout(() => el.classList.remove('counter-animate'), 600);
+        }
+        
+        function renderHabits(habits) {
+            const container = document.getElementById('todayHabits');
+            if (!habits || habits.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p class="text-muted">No habits yet. <a href="/habits">Add some!</a></p></div>';
+                return;
+            }
+            container.innerHTML = habits.slice(0, 5).map(h => `
+                <div class="flex items-center gap-md mb-sm" style="padding: 8px; border-radius: 8px; background: var(--bg-tertiary);">
+                    <div class="habit-cell" onclick="toggleHabit(${h.id})" style="width: 24px; height: 24px; border-radius: 6px; border: 2px solid ${h.is_completed ? 'var(--success)' : 'var(--border-medium)'}; background: ${h.is_completed ? 'var(--success)' : 'transparent'}; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white;">
+                        ${h.is_completed ? '✓' : ''}
+                    </div>
+                    <span class="${h.is_completed ? 'text-muted' : ''}" style="${h.is_completed ? 'text-decoration: line-through;' : ''}">${h.name}</span>
+                </div>
+            `).join('');
+        }
+        
+        function renderTasks(tasks) {
+            const container = document.getElementById('todayTasks');
+            if (!tasks || tasks.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p class="text-muted">No tasks for today. <a href="/tasks">Add some!</a></p></div>';
+                return;
+            }
+            container.innerHTML = tasks.slice(0, 5).map(t => `
+                <div class="flex items-center gap-md mb-sm" style="padding: 8px; border-radius: 8px; background: var(--bg-tertiary);">
+                    <div class="checkbox-wrapper-12">
+                        <div class="cbx">
+                            <input type="checkbox" id="cbx-dash-${t.id}" ${t.is_completed ? 'checked' : ''} onchange="toggleTask(event, ${t.id})">
+                            <label for="cbx-dash-${t.id}"></label>
+                            <svg fill="none" viewBox="0 0 15 14" height="14" width="15">
+                                <path d="M2 8.36364L6.23077 12L13 2"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <span class="${t.is_completed ? 'text-muted' : ''}" style="${t.is_completed ? 'text-decoration: line-through;' : ''}">${t.title}</span>
+                </div>
+            `).join('');
+        }
+        
+        async function toggleHabit(id) {
+            await API.post(`/api/habits/${id}/toggle`, { date: DateUtils.today() });
+            loadDashboard();
+        }
+        
+        async function toggleTask(event, id) {
+            if (event && event.target) {
+                event.target.classList.add('splashing');
+            }
+            await new Promise(r => setTimeout(r, 600));
+            await API.patch(`/api/tasks/${id}/complete`);
+            loadDashboard();
+        }
+        
+        init();
+    </script>
+</body>
+</html>

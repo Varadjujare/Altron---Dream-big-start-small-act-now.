@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <title>Tasks - Altron</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/navbar.css">
+    <style>
+        .task-input-wrapper { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+        .task-input-wrapper .form-input { flex: 1; min-width: 200px; }
+        .task-list { display: flex; flex-direction: column; gap: 20px; }
+        .task-item { display: flex; align-items: center; gap: 12px; padding: 16px; background: linear-gradient(145deg, #0a0a0a, #000000); border: 1px solid var(--border-light); border-radius: 12px; transition: all 0.3s ease; box-shadow: var(--shadow-sm); }
+        .task-item:hover { background: #000; transform: translateX(4px); box-shadow: var(--shadow-md); }
+        .task-item.completed { opacity: 0.6; }
+        .task-item.completed .task-title { text-decoration: line-through; color: var(--text-muted); }
+        /* Checkbox styles managed in components.css */
+        .task-content { flex: 1; }
+        .task-title { font-weight: 500; font-size: 1.1rem; }
+        .task-meta { font-size: 13px; color: var(--text-secondary); margin-top: 6px; display: flex; gap: 12px; flex-wrap: wrap; }
+        .task-actions { display: flex; gap: 8px; opacity: 1; /* Always visible as per request */ }
+        .task-actions .btn { font-size: 1.5rem; padding: 8px; color: var(--text-muted); transition: color 0.2s; }
+        .task-actions .btn:hover { color: var(--error); background: rgba(255, 0, 0, 0.1); }
+        .priority-high { border-left: 4px solid var(--error); }
+        .priority-medium { border-left: 4px solid var(--warning); }
+        .priority-low { border-left: 4px solid var(--info); }
+        .filter-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+        .filter-tab { padding: 8px 16px; border-radius: 20px; cursor: pointer; transition: all 0.2s; background: var(--bg-tertiary); }
+        .filter-tab.active { background: var(--accent-primary); color: white; }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="top-nav">
+        <div class="nav-brand"><img src="favicon.png" alt="Logo" class="nav-brand-icon" style="padding: 0; background: transparent;"><span class="nav-brand-text">Altron</span></div>
+        <div class="nav-menu">
+            <a href="/home">🏠 Home</a>
+            <a href="/dashboard">📊 Dashboard</a>
+            <a href="/habits">✅ Habits</a>
+            <a href="/tasks" class="active">📝 Tasks</a>
+            <a href="/calendar">📅 Calendar</a>
+            <a href="/analytics">📈 Analytics</a>
+            <a href="/settings">⚙️ Settings</a>
+        </div>
+        <div class="nav-actions">
+            <button class="theme-toggle" onclick="Theme.toggle()"><span class="icon-sun">☀️</span><span class="icon-moon">🌙</span></button>
+            <div class="hamburger" onclick="toggleMobileMenu()"><span></span><span></span><span></span></div>
+        </div>
+    </nav>
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="/home">🏠 Home</a>
+        <a href="/dashboard">📊 Dashboard</a>
+        <a href="/habits">✅ Habits</a>
+        <a href="/tasks" class="active">📝 Tasks</a>
+        <a href="/calendar">📅 Calendar</a>
+        <a href="/analytics">📈 Analytics</a>
+        <a href="/settings">⚙️ Settings</a>
+        <a href="#" onclick="Auth.logout()" style="color: var(--error);">🚪 Logout</a>
+    </div>
+
+    <main class="main-wrapper">
+        <header class="page-header-simple">
+            <div><h1 class="page-title">Tasks</h1><p class="page-subtitle">Manage your daily tasks</p></div>
+        </header>
+
+        <div class="page-content page-enter">
+            <div class="card">
+                <div class="card-body">
+                    <div class="task-input-wrapper slide-in-down">
+                        <input type="text" id="taskInput" class="form-input" placeholder="Add a new task... (Press Enter)" onkeypress="if(event.key==='Enter')addTask()">
+                        <select id="taskPriority" class="form-select" style="width: auto; min-width: 120px;">
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="low">Low</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="addTask()">Add</button>
+                    </div>
+                    <div class="filter-tabs">
+                        <div class="filter-tab active" data-filter="all" onclick="setFilter('all')">All</div>
+                        <div class="filter-tab" data-filter="pending" onclick="setFilter('pending')">Pending</div>
+                        <div class="filter-tab" data-filter="completed" onclick="setFilter('completed')">Completed</div>
+                    </div>
+                    <div class="task-list" id="taskList"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- SVG Filter for Gooey Checkbox -->
+    <svg style="position: absolute; width: 0; height: 0; pointer-events: none;">
+      <defs>
+        <filter id="goo-12">
+          <feGaussianBlur result="blur" stdDeviation="4" in="SourceGraphic"></feGaussianBlur>
+          <feColorMatrix result="goo-12" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -7" mode="matrix" in="blur"></feColorMatrix>
+          <feBlend in2="goo-12" in="SourceGraphic"></feBlend>
+        </filter>
+      </defs>
+    </svg>
+
+    <script src="js/api.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/navbar.js"></script>
+    <script>
+        let tasks = [];
+        let currentFilter = 'all';
+        
+        async function init() { if (!await Auth.requireAuth()) return; await loadTasks(); }
+        
+        async function loadTasks() {
+            const result = await API.get('/api/tasks');
+            if (result.success) { tasks = result.tasks; renderTasks(); }
+        }
+        
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
+            renderTasks();
+        }
+        
+        function renderTasks() {
+            const list = document.getElementById('taskList');
+            let filtered = tasks;
+            if (currentFilter === 'pending') filtered = tasks.filter(t => !t.is_completed);
+            if (currentFilter === 'completed') filtered = tasks.filter(t => t.is_completed);
+            
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📝</div><h3 class="empty-state-title">No tasks</h3><p class="text-muted">Add a task above to get started!</p></div>';
+                return;
+            }
+            
+            list.innerHTML = filtered.map((t, index) => `
+                <div class="task-item priority-${t.priority} ${t.is_completed ? 'completed' : ''}" id="task-${t.id}">
+                    <div class="checkbox-wrapper-12" style="margin-right: 12px;">
+                        <div class="cbx">
+                            <input type="checkbox" id="cbx-task-${t.id}" ${t.is_completed ? 'checked' : ''} onchange="toggleTask(event, ${t.id})">
+                            <label for="cbx-task-${t.id}"></label>
+                            <svg fill="none" viewBox="0 0 15 14" height="14" width="15">
+                                <path d="M2 8.36364L6.23077 12L13 2"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="task-content">
+                        <div class="task-title">${t.title}</div>
+                        <div class="task-meta">
+                            <span class="badge badge-${t.priority === 'high' ? 'error' : t.priority === 'medium' ? 'warning' : 'info'}">${t.priority}</span>
+                            ${t.due_date ? `<span>📅 ${t.due_date}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="task-actions"><button class="btn btn-ghost btn-sm" onclick="deleteTask(${t.id})">🗑️</button></div>
+                </div>
+            `).join('');
+        }
+        
+        async function addTask() {
+            const input = document.getElementById('taskInput');
+            const priority = document.getElementById('taskPriority').value;
+            if (!input.value.trim()) return;
+            const result = await API.post('/api/tasks', { title: input.value, priority, due_date: DateUtils.today() });
+            if (result.success) { input.value = ''; await loadTasks(); Toast.success('Task added!'); }
+        }
+        
+        async function toggleTask(event, id) {
+            // Add splashing class to trigger animation on the clicked element only
+            if (event && event.target) {
+                event.target.classList.add('splashing');
+            }
+            // Wait for animation to largely complete before refreshing
+            await new Promise(r => setTimeout(r, 600));
+            await API.patch(`/api/tasks/${id}/complete`); 
+            await loadTasks(); 
+        }
+        
+        async function deleteTask(id) {
+            const el = document.getElementById(`task-${id}`);
+            el.classList.add('deleting');
+            await API.delete(`/api/tasks/${id}`);
+            setTimeout(() => loadTasks(), 300);
+        }
+        
+        init();
+    </script>
+</body>
+</html>
