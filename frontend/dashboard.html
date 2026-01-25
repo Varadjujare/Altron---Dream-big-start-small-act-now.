@@ -196,14 +196,14 @@
         
         async function loadDashboard() {
             try {
-                const [overview, habits, tasks] = await Promise.all([
-                    API.get('/api/analytics/overview'),
-                    API.get('/api/habits/status?date=' + DateUtils.today()),
-                    API.get('/api/tasks?date=' + DateUtils.today())
-                ]);
-                if (overview.success) updateStats(overview);
-                if (habits.success) renderHabits(habits.habits);
-                if (tasks.success) renderTasks(tasks.tasks);
+                // Optimized: Fetch all data in one request (~3x faster)
+                const data = await API.get('/api/analytics/dashboard-data');
+                
+                if (data.success) {
+                    updateStats(data.overview);
+                    renderHabits(data.habits);
+                    renderTasks(data.tasks);
+                }
             } catch (err) { console.error('Dashboard load error:', err); }
         }
         

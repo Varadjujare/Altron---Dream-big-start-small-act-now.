@@ -356,3 +356,87 @@ def get_overview():
             'success': False,
             'message': f'Failed to fetch overview: {str(e)}'
         }), 500
+
+
+@analytics_bp.route('/dashboard-data', methods=['GET'])
+@login_required
+def get_dashboard_data():
+    """Get all dashboard data in a single request for performance."""
+    try:
+        today = datetime.now().strftime('%Y-%m-%d')
+        
+        # 1. Overview Stats (Habits + Tasks)
+        # Optimized query to get habit stats in one go
+        habit_stats_query = """
+            SELECT 
+                (SELECT COUNT(*) FROM habits WHERE user_id = %s AND is_active = TRUE) as total,
+                (SELECT COUNT(DISTINCT hl.habit_id) 
+                 FROM habit_logs hl 
+                 JOIN habits h ON hl.habit_id = h.id 
+                 WHERE h.user_id = %s AND hl.completed_date = %s AND h.is_active = TRUE) as completed
+        """
+        habit_stats = execute_query(habit_stats_query, (current_user.id, current_user.id, today), fetch_one=True)
+        
+        # Optimized query for task stats
+        task_stats_query = """
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN is_completed = TRUE THEN 1 ELSE 0 END) as completed
+            FROM tasks 
+            WHERE user_id = %s AND (due_date = %s OR due_date IS NULL)
+        """
+        task_stats = execute_query(task_stats_query, (current_user.id, today), fetch_one=True)
+        
+        # Calculate percentages
+        h_total = habit_stats['total'] if habit_stats else 0
+        h_comp = habit_stats['completed'] if habit_stats else 0
+        t_total = task_stats['total'] or 0
+        t_comp = task_stats['completed'] or 0
+        
+        total_items = h_total + t_total
+        total_completed = h_comp + t_comp
+        overall_pct = round((total_completed / total_items * 100), 1) if total_items > 0 else 0
+        
+        overview = {
+            'date': today,
+            'habits': {'total': h_total, 'completed': h_comp, 'percentage': round((h_comp / h_total * 100), 1) if h_total > 0 else 0},
+            'tasks': {'total': t_total, 'completed': t_comp, 'percentage': round((t_comp / t_total * 100), 1) if t_total > 0 else 0},
+            'overall': {'percentage': overall_pct}
+        }
+
+        # 2. Habits List (Today's status)
+        habits_query = """
+            SELECT h.id, h.name, h.color, h.icon,
+                   CASE WHEN hl.id IS NOT NULL THEN TRUE ELSE FALSE END as is_completed
+            FROM habits h
+            LEFT JOIN habit_logs hl ON h.id = hl.habit_id AND hl.completed_date = %s
+            WHERE h.user_id = %s AND h.is_active = TRUE
+            ORDER BY h.sort_order, h.id
+        """
+        habits_list = execute_query(habits_query, (today, current_user.id), fetch_all=True)
+
+        # 3. Tasks List (Today's tasks)
+        tasks_query = """
+            SELECT * FROM tasks 
+            WHERE user_id = %s AND (due_date = %s OR due_date IS NULL)
+            ORDER BY is_completed, priority DESC, created_at DESC
+        """
+        tasks_result = execute_query(tasks_query, (current_user.id, today), fetch_all=True)
+        # Convert datetime objects to strings
+        from models.task import Task
+        tasks_list = [Task(**r).to_dict() for r in tasks_result]
+        
+        return jsonify({
+            'success': True,
+            'overview': overview,
+            'habits': habits_list,
+            'tasks': tasks_list
+        }), 200
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': f'Failed to fetch dashboard data: {str(e)}'
+        }), 500
