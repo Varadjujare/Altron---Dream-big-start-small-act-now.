@@ -45,7 +45,7 @@ def get_daily_stats():
                 COUNT(*) as total,
                 SUM(CASE WHEN is_completed = TRUE THEN 1 ELSE 0 END) as completed
             FROM tasks 
-            WHERE user_id = %s AND (due_date = %s OR (due_date IS NULL AND DATE(created_at) = %s))
+            WHERE user_id = %s AND (due_date = %s OR (due_date IS NULL AND created_at::DATE = %s))
         """
         task_result = execute_query(task_query, (current_user.id, date_str, date_str), fetch_one=True)
         
@@ -160,8 +160,8 @@ def get_monthly_stats():
             FROM habit_logs hl
             JOIN habits h ON hl.habit_id = h.id
             WHERE h.user_id = %s 
-                AND YEAR(hl.completed_date) = %s 
-                AND MONTH(hl.completed_date) = %s
+                AND EXTRACT(YEAR FROM hl.completed_date) = %s 
+                AND EXTRACT(MONTH FROM hl.completed_date) = %s
                 AND h.is_active = TRUE
             GROUP BY hl.completed_date
             ORDER BY hl.completed_date
