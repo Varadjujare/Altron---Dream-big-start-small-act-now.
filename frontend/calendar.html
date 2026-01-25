@@ -28,9 +28,14 @@
         .month-nav { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
         .month-display { font-size: 20px; font-weight: 600; min-width: 180px; text-align: center; }
         .day-details { margin-top: 24px; }
+        .calendar-scroll-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+        .calendar-scroll-wrapper::-webkit-scrollbar { height: 4px; }
+        .calendar-scroll-wrapper::-webkit-scrollbar-track { background: var(--bg-secondary); border-radius: 2px; }
+        .calendar-scroll-wrapper::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
         @media (max-width: 768px) {
-            .calendar-day { min-height: 60px; padding: 4px; }
-            .day-number { font-size: 12px; }
+            .calendar-grid { min-width: 600px; gap: 8px; }
+            .calendar-day { min-height: 70px; padding: 6px; }
+            .day-number { font-size: 14px; }
         }
     </style>
 </head>
@@ -79,16 +84,18 @@
                     <button class="btn btn-ghost" onclick="goToToday()">Today</button>
                 </div>
                 <div class="card-body">
-                    <div class="calendar-grid">
-                        <div class="calendar-header">Sun</div>
-                        <div class="calendar-header">Mon</div>
-                        <div class="calendar-header">Tue</div>
-                        <div class="calendar-header">Wed</div>
-                        <div class="calendar-header">Thu</div>
-                        <div class="calendar-header">Fri</div>
-                        <div class="calendar-header">Sat</div>
+                    <div class="calendar-scroll-wrapper">
+                        <div class="calendar-grid">
+                            <div class="calendar-header">Sun</div>
+                            <div class="calendar-header">Mon</div>
+                            <div class="calendar-header">Tue</div>
+                            <div class="calendar-header">Wed</div>
+                            <div class="calendar-header">Thu</div>
+                            <div class="calendar-header">Fri</div>
+                            <div class="calendar-header">Sat</div>
+                        </div>
+                        <div class="calendar-grid" id="calendarDays"></div>
                     </div>
-                    <div class="calendar-grid" id="calendarDays"></div>
                 </div>
             </div>
             <div class="day-details" id="dayDetails"></div>
