@@ -208,12 +208,11 @@
                 if (result.success) {
                     localStorage.setItem('user', JSON.stringify(result.user));
                     window.location.href = '/home';
-                } else {
-                    errorDiv.textContent = result.message || 'Login failed';
-                    errorDiv.classList.remove('hidden');
                 }
             } catch (err) {
-                errorDiv.textContent = 'An error occurred. Please try again.';
+                // Display the specific error message from the API if available
+                const errorMessage = err.message || 'An error occurred. Please try again.';
+                errorDiv.textContent = errorMessage;
                 errorDiv.classList.remove('hidden');
             } finally {
                 btn.disabled = false;

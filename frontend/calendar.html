@@ -148,6 +148,7 @@
                 const isToday = dateStr === today;
                 const isSelected = dateStr === selectedDate;
                 const dayData = monthData[dateStr] || { percentage: 0 };
+                // Added onclick handler to select the date
                 html += `<div class="calendar-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}" onclick="selectDate('${dateStr}')" style="animation: fadeSlideUp 0.3s ease forwards; animation-delay: ${(d * 0.01)}s; opacity: 0;"><span class="day-number">${d}</span><div class="day-progress"><div class="day-progress-fill" style="width: ${dayData.percentage}%"></div></div></div>`;
             }
             
@@ -157,7 +158,22 @@
             container.innerHTML = html;
         }
         
-        async function selectDate(dateStr) { selectedDate = dateStr; renderCalendar(); await loadDayDetails(dateStr); }
+        
+        async function selectDate(dateStr) {
+            // Update selected date state
+            selectedDate = dateStr;
+            
+            // Re-render calendar grid to show selection highlight
+            renderCalendar();
+            
+            // Fetch and display data for the selected day
+            await loadDayDetails(dateStr);
+            
+            // Scroll to details section on mobile for better UX
+            if (window.innerWidth <= 768) {
+                document.getElementById('dayDetails').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
         
         async function loadDayDetails(dateStr) {
             const [habitsRes, tasksRes] = await Promise.all([ API.get(`/api/habits/status?date=${dateStr}`), API.get(`/api/tasks?date=${dateStr}`) ]);
