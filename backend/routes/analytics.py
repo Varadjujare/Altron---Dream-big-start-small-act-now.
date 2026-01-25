@@ -83,25 +83,33 @@ def get_weekly_stats():
         week_start = target_date - timedelta(days=target_date.weekday())
         week_end = week_start + timedelta(days=6)
         
-        # Get daily stats for each day of the week
+        # Get daily stats for each day of the week in one query
+        query = """
+            SELECT 
+                hl.completed_date,
+                COUNT(DISTINCT hl.habit_id) as completed
+            FROM habit_logs hl
+            JOIN habits h ON hl.habit_id = h.id
+            WHERE h.user_id = %s 
+                AND hl.completed_date >= %s 
+                AND hl.completed_date <= %s
+                AND h.is_active = TRUE
+            GROUP BY hl.completed_date
+        """
+        results = execute_query(query, (current_user.id, week_start.strftime('%Y-%m-%d'), week_end.strftime('%Y-%m-%d')), fetch_all=True)
+        
+        # Map results to dictionary for easy lookup
+        stats_map = {str(row['completed_date']): row['completed'] for row in results}
+        
         daily_stats = []
         for i in range(7):
             day = week_start + timedelta(days=i)
             day_str = day.strftime('%Y-%m-%d')
             
-            # Get completed habits for this day
-            query = """
-                SELECT COUNT(DISTINCT hl.habit_id) as completed
-                FROM habit_logs hl
-                JOIN habits h ON hl.habit_id = h.id
-                WHERE h.user_id = %s AND hl.completed_date = %s AND h.is_active = TRUE
-            """
-            result = execute_query(query, (current_user.id, day_str), fetch_one=True)
-            
             daily_stats.append({
                 'date': day_str,
                 'day_name': day.strftime('%a'),
-                'completed': result['completed'] if result else 0
+                'completed': stats_map.get(day_str, 0)
             })
         
         # Get total active habits
@@ -217,31 +225,44 @@ def get_streaks():
         """
         habits = execute_query(habits_query, (current_user.id,), fetch_all=True)
         
-        streaks = []
+        # Get all completion logs for user in one query
+        logs_query = """
+            SELECT hl.habit_id, hl.completed_date 
+            FROM habit_logs hl
+            JOIN habits h ON hl.habit_id = h.id
+            WHERE h.user_id = %s AND h.is_active = TRUE
+            ORDER BY hl.habit_id, hl.completed_date DESC
+        """
+        all_logs = execute_query(logs_query, (current_user.id,), fetch_all=True)
+        
+        # Group logs by habit_id
+        logs_by_habit = {}
+        for log in all_logs:
+            hid = log['habit_id']
+            if hid not in logs_by_habit:
+                logs_by_habit[hid] = []
+            logs_by_habit[hid].append(log['completed_date'])
+            
         today = datetime.now().date()
+        streaks = []
         
         for habit in habits:
-            # Get all completion dates for this habit, ordered
-            logs_query = """
-                SELECT completed_date FROM habit_logs 
-                WHERE habit_id = %s 
-                ORDER BY completed_date DESC
-            """
-            logs = execute_query(logs_query, (habit['id'],), fetch_all=True)
+            habit_id = habit['id']
+            habit_logs = logs_by_habit.get(habit_id, [])
             
-            if not logs:
+            if not habit_logs:
                 streaks.append({
-                    'habit_id': habit['id'],
+                    'habit_id': habit_id,
                     'habit_name': habit['name'],
                     'current_streak': 0,
                     'best_streak': 0
                 })
                 continue
-            
+                
             # Calculate current streak
             current_streak = 0
             check_date = today
-            dates_set = {log['completed_date'] for log in logs}
+            dates_set = set(habit_logs)
             
             while check_date in dates_set:
                 current_streak += 1
@@ -255,7 +276,8 @@ def get_streaks():
                     check_date -= timedelta(days=1)
             
             # Calculate best streak
-            sorted_dates = sorted([log['completed_date'] for log in logs])
+            # habit_logs is already sorted DESC, so reverse for ASC
+            sorted_dates = sorted(habit_logs)
             best_streak = 1
             temp_streak = 1
             
@@ -267,7 +289,7 @@ def get_streaks():
                     temp_streak = 1
             
             streaks.append({
-                'habit_id': habit['id'],
+                'habit_id': habit_id,
                 'habit_name': habit['name'],
                 'current_streak': current_streak,
                 'best_streak': best_streak
