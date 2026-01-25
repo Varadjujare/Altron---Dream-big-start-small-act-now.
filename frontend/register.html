@@ -176,7 +176,11 @@
                     password: password 
                 });
                 if (result.success) { window.location.href = '/'; } else { errorDiv.textContent = result.message || 'Registration failed'; errorDiv.classList.remove('hidden'); }
-            } catch (err) { errorDiv.textContent = 'An error occurred'; errorDiv.classList.remove('hidden'); }
+            } catch (err) { 
+                console.error('Registration Error:', err);
+                errorDiv.textContent = err.message || 'An error occurred during registration. Please try again.'; 
+                errorDiv.classList.remove('hidden'); 
+            }
             finally { btn.disabled = false; btnText.textContent = 'Create Account'; btnSpinner.classList.add('hidden'); }
         });
     </script>

@@ -58,10 +58,17 @@ def register():
         # Send welcome email (non-blocking)
         try:
             from utils.email_service import email_service
+            import threading
             if email_service.is_configured:
-                email_service.send_welcome_email(email, username)
+                # Run in a separate thread to not block the response
+                email_thread = threading.Thread(
+                    target=email_service.send_welcome_email,
+                    args=(email, username)
+                )
+                email_thread.daemon = True
+                email_thread.start()
         except Exception as email_error:
-            print(f"⚠️ Failed to send welcome email: {email_error}")
+            print(f"⚠️ Failed to initiate welcome email: {email_error}")
         
         return jsonify({
             'success': True,
