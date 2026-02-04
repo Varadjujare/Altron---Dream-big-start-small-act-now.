@@ -230,13 +230,13 @@ class ReportGenerator:
         chart_rows_html += '<tr>'
         for d in chart_data:
             pct_value = d["percentage"]
-            # Color logic - Green theme
+            # Color logic
             if pct_value >= 80:
-                color = "#22c55e" # bright green
+                color = "#22c55e" # accent
             elif pct_value >= 50:
-                color = "#10b981" # medium green
+                color = "#00d9ff" # blue
             else:
-                color = "#34d399" # light green
+                color = "#f59e0b" # orange
                 
             chart_rows_html += f'''
             <td valign="bottom" style="padding: 0 4px; height: 160px;">
@@ -259,7 +259,7 @@ class ReportGenerator:
         habits_html = ""
         for h in stats.get("habits_breakdown", []):
             completion_rate = round((h["completions"] / max(h["out_of"], 1)) * 100)
-            status_color = "#22c55e" if completion_rate >= 80 else "#10b981" if completion_rate >= 50 else "#34d399"
+            status_color = "#22c55e" if completion_rate >= 80 else "#f59e0b" if completion_rate >= 50 else "#ef4444"
             trend = "Excellent" if completion_rate >= 80 else "Stable" if completion_rate >= 50 else "Need Improvement"
             arrow = "⬆" if completion_rate >= 50 else "⬇"
             
