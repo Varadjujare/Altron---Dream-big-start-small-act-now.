@@ -142,7 +142,7 @@ async function renderProductivityChart(period = 'month') {
                     label: 'Habit Score',
                     data: scores.map(s => s.habits_score),
                     borderColor: '#39d353',
-                    backgroundColor: transparent',
+                    backgroundColor: 'transparent',
                     borderWidth: 1,
                     borderDash: [5, 5],
                     pointRadius: 0,
@@ -453,7 +453,7 @@ async function exportToCSV() {
         
         const result = await API.get(`/api/analytics/export-data?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`);
         
- if (!result.success) {
+        if (!result.success) {
             Toast.error('Failed to export data');
             return;
         }
