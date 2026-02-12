@@ -18,7 +18,14 @@
         .habit-grid { display: grid; gap: 2px; overflow-x: auto; }
         .habit-grid-header { display: contents; }
         .habit-grid-row { display: contents; }
-        .habit-name-cell { padding: 8px 12px; background: var(--bg-tertiary); font-weight: 500; min-width: 150px; max-width: 180px; word-wrap: break-word; position: sticky; left: 0; z-index: 2; }
+        .habit-name-cell { padding: 8px 12px; background: var(--bg-tertiary); font-weight: 500; min-width: 150px; max-width: 180px; word-wrap: break-word; position: sticky; left: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .habit-name-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .habit-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s ease; }
+        .habit-name-cell:hover .habit-actions { opacity: 1; }
+        .habit-action-btn { background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: 4px; font-size: 14px; transition: all 0.2s ease; color: var(--text-secondary); }
+        .habit-action-btn:hover { background: var(--bg-hover); transform: scale(1.1); }
+        .habit-action-btn.edit:hover { color: var(--accent-primary); }
+        .habit-action-btn.delete:hover { color: var(--error); }
         .day-header { text-align: center; padding: 8px 4px; font-size: 12px; color: var(--text-muted); min-width: 32px; }
         .day-header.weekend { color: var(--warning); }
         .day-header.today { background: var(--accent-primary-light); border-radius: 4px; color: var(--accent-primary); font-weight: 600; }
@@ -233,18 +240,29 @@
         </div>
     </main>
 
-    <!-- Add Habit Modal -->
+    <!-- Add/Edit Habit Modal -->
     <div class="modal-backdrop" id="modalBackdrop" onclick="closeModal()"></div>
     <div class="modal" id="habitModal">
-        <div class="modal-header"><h3 class="modal-title">Add New Habit</h3><span class="modal-close" onclick="closeModal()">✕</span></div>
+        <div class="modal-header"><h3 class="modal-title" id="modalTitle">Add New Habit</h3><span class="modal-close" onclick="closeModal()">✕</span></div>
         <div class="modal-body">
             <form id="habitForm">
+                <input type="hidden" id="habitId" value="">
                 <div class="form-group"><label class="form-label">Habit Name</label><input type="text" id="habitName" class="form-input" placeholder="e.g., Wake up at 7 AM" required></div>
                 <div class="form-group"><label class="form-label">Description (optional)</label><textarea id="habitDesc" class="form-input" rows="2"></textarea></div>
                 <div class="form-group"><label class="form-label">Color</label><input type="color" id="habitColor" value="#4CAF50" class="form-input" style="height: 40px; padding: 4px;"></div>
             </form>
         </div>
-        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveHabit()">Save Habit</button></div>
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" id="saveBtn" onclick="saveHabit()">Save Habit</button></div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal" id="deleteModal" style="max-width: 400px;">
+        <div class="modal-header"><h3 class="modal-title">Delete Habit?</h3><span class="modal-close" onclick="closeDeleteModal()">✕</span></div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete <strong id="deleteHabitName"></strong>?</p>
+            <p style="color: var(--text-muted); font-size: 14px; margin-top: 8px;">This will permanently remove the habit and all its completion history.</p>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button><button class="btn" style="background: var(--error); color: white;" onclick="confirmDelete()">Delete</button></div>
     </div>
 
     <script src="js/api.js"></script>
@@ -323,7 +341,15 @@
             html += '</div>';
             
             habits.forEach((habit, index) => {
-                html += `<div class="habit-grid-row" style="animation: fadeSlideUp 0.3s ease forwards; animation-delay: ${index * 0.05}s; opacity: 0;"><div class="habit-name-cell" style="border-left: 4px solid ${habit.color}">${habit.name}</div>`;
+                html += `<div class="habit-grid-row" style="animation: fadeSlideUp 0.3s ease forwards; animation-delay: ${index * 0.05}s; opacity: 0;">
+                    <div class="habit-name-cell" style="border-left: 4px solid ${habit.color}">
+                        <span class="habit-name-text">${habit.name}</span>
+                        <div class="habit-actions">
+                            <button class="habit-action-btn edit" onclick="openEditModal(${habit.id})" title="Edit habit">✏️</button>
+                            <button class="habit-action-btn delete" onclick="deleteHabit(${habit.id}, '${habit.name.replace(/'/g, "\\'")}')"
+ title="Delete habit">🗑️</button>
+                        </div>
+                    </div>`;
                 for (let d = 1; d <= daysInMonth; d++) {
                     const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                     const isCompleted = (logs[habit.id] || []).includes(dateStr);
@@ -539,13 +565,97 @@
             setTimeout(() => cell.classList.remove('completing'), 500);
         }
         
-        function openAddModal() { document.getElementById('modalBackdrop').classList.add('active'); document.getElementById('habitModal').classList.add('active'); }
-        function closeModal() { document.getElementById('modalBackdrop').classList.remove('active'); document.getElementById('habitModal').classList.remove('active'); document.getElementById('habitForm').reset(); }
+        let currentEditingHabitId = null;
+        let habitToDelete = null;
+        
+        function openAddModal() {
+            currentEditingHabitId = null;
+            document.getElementById('modalTitle').textContent = 'Add New Habit';
+            document.getElementById('saveBtn').textContent = 'Save Habit';
+            document.getElementById('habitId').value = '';
+            document.getElementById('habitForm').reset();
+            document.getElementById('habitColor').value = '#4CAF50';
+            document.getElementById('modalBackdrop').classList.add('active');
+            document.getElementById('habitModal').classList.add('active');
+        }
+        
+        async function openEditModal(habitId) {
+            currentEditingHabitId = habitId;
+            const habit = habits.find(h => h.id === habitId);
+            if (!habit) return;
+            
+            document.getElementById('modalTitle').textContent = 'Edit Habit';
+            document.getElementById('saveBtn').textContent = 'Update Habit';
+            document.getElementById('habitId').value = habitId;
+            document.getElementById('habitName').value = habit.name;
+            document.getElementById('habitDesc').value = habit.description || '';
+            document.getElementById('habitColor').value = habit.color || '#4CAF50';
+            document.getElementById('modalBackdrop').classList.add('active');
+            document.getElementById('habitModal').classList.add('active');
+        }
+        
+        function closeModal() {
+            document.getElementById('modalBackdrop').classList.remove('active');
+            document.getElementById('habitModal').classList.remove('active');
+            document.getElementById('habitForm').reset();
+            currentEditingHabitId = null;
+        }
         
         async function saveHabit() {
-            const result = await API.post('/api/habits', { name: document.getElementById('habitName').value, description: document.getElementById('habitDesc').value, color: document.getElementById('habitColor').value });
-            if (result.success) { closeModal(); loadHabits(); Toast.success('Habit added!'); }
-            else { Toast.error(result.message); }
+            const habitId = document.getElementById('habitId').value;
+            const data = {
+                name: document.getElementById('habitName').value,
+                description: document.getElementById('habitDesc').value,
+                color: document.getElementById('habitColor').value
+            };
+            
+            let result;
+            if (habitId) {
+                // Update existing habit
+                result = await API.put(`/api/habits/${habitId}`, data);
+                if (result.success) {
+                    Toast.success('Habit updated!');
+                }
+            } else {
+                // Create new habit
+                result = await API.post('/api/habits', data);
+                if (result.success) {
+                    Toast.success('Habit added!');
+                }
+            }
+            
+            if (result.success) {
+                closeModal();
+                loadHabits();
+            } else {
+                Toast.error(result.message);
+            }
+        }
+        
+        function deleteHabit(habitId, habitName) {
+            habitToDelete = habitId;
+            document.getElementById('deleteHabitName').textContent = habitName;
+            document.getElementById('modalBackdrop').classList.add('active');
+            document.getElementById('deleteModal').classList.add('active');
+        }
+        
+        function closeDeleteModal() {
+            document.getElementById('modalBackdrop').classList.remove('active');
+            document.getElementById('deleteModal').classList.remove('active');
+            habitToDelete = null;
+        }
+        
+        async function confirmDelete() {
+            if (!habitToDelete) return;
+            
+            const result = await API.delete(`/api/habits/${habitToDelete}`);
+            if (result.success) {
+                Toast.success('Habit deleted!');
+                closeDeleteModal();
+                loadHabits();
+            } else {
+                Toast.error(result.message);
+            }
         }
         
         init();
