@@ -18,9 +18,9 @@
         .habit-grid { display: grid; gap: 2px; overflow-x: auto; }
         .habit-grid-header { display: contents; }
         .habit-grid-row { display: contents; }
-        .habit-name-cell { padding: 8px 12px; background: var(--bg-tertiary); font-weight: 500; min-width: 150px; max-width: 180px; word-wrap: break-word; position: sticky; left: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-        .habit-name-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .habit-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s ease; }
+        .habit-name-cell { padding: 8px 12px; background: var(--bg-tertiary); font-weight: 500; min-width: 200px; max-width: 250px; word-wrap: break-word; position: sticky; left: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .habit-name-text { flex: 1; min-width: 0; word-wrap: break-word; }
+        .habit-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s ease; flex-shrink: 0; }
         .habit-name-cell:hover .habit-actions { opacity: 1; }
         .habit-action-btn { background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: 4px; font-size: 14px; transition: all 0.2s ease; color: var(--text-secondary); }
         .habit-action-btn:hover { background: var(--bg-hover); transform: scale(1.1); }
@@ -108,7 +108,7 @@
             .day-header { font-size: 10px; min-width: 28px; padding: 4px 2px; }
             .stats-cell { min-width: 28px; font-size: 9px; }
             .habit-name-cell { 
-                min-width: 100px; 
+                min-width: 140px; 
                 font-size: 12px; 
                 padding: 6px 8px; 
                 /* Remove sticky on mobile - scrolls with grid */
@@ -116,7 +116,7 @@
                 box-shadow: none; 
             }
             .stats-label { 
-                min-width: 100px; 
+                min-width: 140px; 
                 font-size: 10px;
                 /* Remove sticky on mobile - scrolls with grid */
                 position: static;
@@ -126,7 +126,7 @@
                 position: static;
             }
             .week-label { font-size: 8px; padding: 4px 2px; }
-            .week-spacer { min-width: 100px; }
+            .week-spacer { min-width: 140px; }
             
             .habit-grid { gap: 1px; }
             
@@ -157,9 +157,9 @@
             .habit-cell { width: 24px; height: 24px; font-size: 10px; border-width: 1px; }
             .day-header { font-size: 9px; min-width: 24px; }
             .stats-cell { min-width: 24px; font-size: 8px; }
-            .habit-name-cell { min-width: 80px; font-size: 11px; padding: 4px 6px; }
-            .stats-label { min-width: 80px; font-size: 9px; }
-            .week-spacer { min-width: 80px; }
+            .habit-name-cell { min-width: 120px; font-size: 11px; padding: 4px 6px; }
+            .stats-label { min-width: 120px; font-size: 9px; }
+            .week-spacer { min-width: 120px; }
             .week-label { font-size: 7px; }
         }
     </style>
@@ -305,7 +305,7 @@
             const daysInMonth = DateUtils.getDaysInMonth(currentYear, currentMonth);
             const today = DateUtils.today();
             const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
-            grid.style.gridTemplateColumns = `150px repeat(${daysInMonth}, 32px)`;
+            grid.style.gridTemplateColumns = `200px repeat(${daysInMonth}, 32px)`;
             
             const weekInfo = [];
             for (let d = 1; d <= daysInMonth; d++) {
@@ -392,7 +392,7 @@
             // Build stats rows HTML
             let html = '';
             statsContainer.style.display = 'grid';
-            statsContainer.style.gridTemplateColumns = `150px repeat(${daysInMonth}, 32px)`;
+            statsContainer.style.gridTemplateColumns = `200px repeat(${daysInMonth}, 32px)`;
             
             // Progress row
             html += '<div class="stats-row">';
