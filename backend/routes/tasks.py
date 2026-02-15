@@ -200,3 +200,108 @@ def get_tasks_by_date(date_str):
             'success': False,
             'message': f'Failed to fetch tasks: {str(e)}'
         }), 500
+
+
+@tasks_bp.route('/dates', methods=['GET'])
+@login_required
+def get_dates_with_tasks():
+    """Get all dates that have tasks with counts."""
+    try:
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        dates = Task.get_dates_with_tasks(
+            current_user.id, 
+            start_date=start_date, 
+            end_date=end_date
+        )
+        
+        return jsonify({
+            'success': True,
+            'dates': dates
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Failed to fetch dates: {str(e)}'
+        }), 500
+
+
+@tasks_bp.route('/overdue', methods=['GET'])
+@login_required
+def get_overdue_tasks():
+    """Get all overdue tasks (incomplete with past due dates)."""
+    try:
+        tasks = Task.get_overdue_tasks(current_user.id)
+        
+        return jsonify({
+            'success': True,
+            'tasks': tasks,
+            'count': len(tasks)
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Failed to fetch overdue tasks: {str(e)}'
+        }), 500
+
+
+@tasks_bp.route('/no-date', methods=['GET'])
+@login_required
+def get_no_date_tasks():
+    """Get all tasks without a due date (backlog)."""
+    try:
+        tasks = Task.get_no_date_tasks(current_user.id)
+        
+        return jsonify({
+            'success': True,
+            'tasks': tasks,
+            'count': len(tasks)
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Failed to fetch backlog tasks: {str(e)}'
+        }), 500
+
+
+@tasks_bp.route('/bulk-update-date', methods=['PATCH'])
+@login_required
+def bulk_update_task_date():
+    """Update due date for multiple tasks at once."""
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('task_ids') or not data.get('new_date'):
+            return jsonify({
+                'success': False,
+                'message': 'task_ids and new_date are required'
+            }), 400
+        
+        # Verify all tasks belong to current user
+        task_ids = data['task_ids']
+        for task_id in task_ids:
+            task = Task.get_by_id(task_id)
+            if not task or task.user_id != current_user.id:
+                return jsonify({
+                    'success': False,
+                    'message': f'Task {task_id} not found or unauthorized'
+                }), 404
+        
+        updated_count = Task.bulk_update_date(task_ids, data['new_date'])
+        
+        return jsonify({
+            'success': True,
+            'message': f'Updated {updated_count} tasks',
+            'updated_count': updated_count
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Failed to update tasks: {str(e)}'
+        }), 500
+

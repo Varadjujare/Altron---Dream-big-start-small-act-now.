@@ -155,3 +155,79 @@ class Task:
             'completed': result['completed'] or 0,
             'percentage': round((result['completed'] or 0) / (result['total'] or 1) * 100, 1)
         }
+    
+    @staticmethod
+    def get_dates_with_tasks(user_id, start_date=None, end_date=None):
+        """Get all unique dates that have tasks for a user, with task counts."""
+        if start_date and end_date:
+            query = """
+                SELECT 
+                    due_date,
+                    COUNT(*) as total,
+                    SUM(CASE WHEN is_completed = TRUE THEN 1 ELSE 0 END) as completed
+                FROM tasks 
+                WHERE user_id = %s AND due_date IS NOT NULL 
+                    AND due_date >= %s AND due_date <= %s
+                GROUP BY due_date
+                ORDER BY due_date
+            """
+            params = (user_id, start_date, end_date)
+        else:
+            query = """
+                SELECT 
+                    due_date,
+                    COUNT(*) as total,
+                    SUM(CASE WHEN is_completed = TRUE THEN 1 ELSE 0 END) as completed
+                FROM tasks 
+                WHERE user_id = %s AND due_date IS NOT NULL
+                GROUP BY due_date
+                ORDER BY due_date
+            """
+            params = (user_id,)
+        
+        results = execute_query(query, params, fetch_all=True)
+        return [{
+            'date': str(r['due_date']),
+            'total': r['total'],
+            'completed': r['completed'] or 0,
+            'percentage': round((r['completed'] or 0) / r['total'] * 100, 1) if r['total'] > 0 else 0
+        } for r in results]
+    
+    @staticmethod
+    def get_overdue_tasks(user_id):
+        """Get all incomplete tasks with due dates in the past."""
+        query = """
+            SELECT * FROM tasks 
+            WHERE user_id = %s AND is_completed = FALSE 
+                AND due_date < CURRENT_DATE
+            ORDER BY due_date, priority DESC, created_at DESC
+        """
+        results = execute_query(query, (user_id,), fetch_all=True)
+        return [Task(**r).to_dict() for r in results]
+    
+    @staticmethod
+    def get_no_date_tasks(user_id):
+        """Get all tasks without a due date (backlog)."""
+        query = """
+            SELECT * FROM tasks 
+            WHERE user_id = %s AND due_date IS NULL
+            ORDER BY priority DESC, created_at DESC
+        """
+        results = execute_query(query, (user_id,), fetch_all=True)
+        return [Task(**r).to_dict() for r in results]
+    
+    @staticmethod
+    def bulk_update_date(task_ids, new_date):
+        """Update due_date for multiple tasks at once."""
+        if not task_ids:
+            return 0
+        
+        placeholders = ','.join(['%s'] * len(task_ids))
+        query = f"""
+            UPDATE tasks 
+            SET due_date = %s 
+            WHERE id IN ({placeholders})
+        """
+        params = [new_date] + list(task_ids)
+        execute_query(query, tuple(params))
+        return len(task_ids)

@@ -15,26 +15,176 @@
     <link rel="stylesheet" href="css/animations.css">
     <link rel="stylesheet" href="css/navbar.css">
     <style>
-        .task-input-wrapper { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
-        .task-input-wrapper .form-input { flex: 1; min-width: 200px; }
-        .task-list { display: flex; flex-direction: column; gap: 20px; }
-        .task-item { display: flex; align-items: center; gap: 12px; padding: 16px; background: linear-gradient(145deg, #0a0a0a, #000000); border: 1px solid var(--border-light); border-radius: 12px; transition: all 0.3s ease; box-shadow: var(--shadow-sm); }
-        .task-item:hover { background: #000; transform: translateX(4px); box-shadow: var(--shadow-md); }
+        /* Date Section Styles */
+        .date-sections { display: flex; flex-direction: column; gap: 24px; }
+        .date-section { 
+            background: linear-gradient(145deg, rgba(10, 10, 10, 0.6), rgba(0, 0, 0, 0.8)); 
+            border: 1px solid var(--border-light); 
+            border-radius: 16px; 
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .date-section.expanded { box-shadow: var(--shadow-lg); }
+        
+        .date-header { 
+            padding: 20px 24px; 
+            cursor: pointer; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            transition: background 0.2s;
+            user-select: none;
+        }
+        .date-header:hover { background: rgba(255, 255, 255, 0.03); }
+        
+        .date-info { flex: 1; }
+        .date-title { 
+            font-size: 1.25rem; 
+            font-weight: 600; 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            margin-bottom: 6px;
+        }
+        .date-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .date-badge.today { background: var(--accent-primary); color: white; }
+        .date-badge.overdue { background: var(--error); color: white; }
+        .date-badge.upcoming { background: var(--info); color: white; }
+        .date-badge.backlog { background: var(--text-muted); color: white; }
+        
+        .date-stats { 
+            font-size: 0.9rem; 
+            color: var(--text-secondary); 
+            display: flex; 
+            align-items: center; 
+            gap: 16px;
+        }
+        .progress-bar-mini {
+            display: inline-block;
+            width: 60px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            vertical-align: middle;
+        }
+        .progress-bar-mini-fill {
+            height: 100%;
+            background: var(--accent-primary);
+            transition: width 0.3s ease;
+        }
+        
+        .date-actions { 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+        }
+        .expand-icon { 
+            font-size: 1.5rem; 
+            transition: transform 0.3s ease; 
+            color: var(--text-muted);
+        }
+        .date-section.expanded .expand-icon { transform: rotate(90deg); }
+        
+        .date-content { 
+            max-height: 0; 
+            overflow: hidden; 
+            transition: max-height 0.4s ease, padding 0.4s ease;
+        }
+        .date-section.expanded .date-content { 
+            max-height: 5000px; 
+            padding: 0 24px 24px 24px; 
+        }
+        
+        /* Quick Add Section */
+        .quick-add-section {
+            margin-bottom: 20px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+        }
+        .quick-add-form { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+        .quick-add-form .form-input { flex: 1; min-width: 200px; }
+        .quick-add-form .form-select { width: auto; min-width: 120px; }
+        
+        /* Task List */
+        .task-list { display: flex; flex-direction: column; gap: 12px; }
+        .task-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            padding: 14px 16px; 
+            background: linear-gradient(145deg, #0a0a0a, #000000); 
+            border: 1px solid var(--border-light); 
+            border-radius: 10px; 
+            transition: all 0.3s ease; 
+        }
+        .task-item:hover { 
+            background: #000; 
+            transform: translateX(4px); 
+            box-shadow: var(--shadow-sm); 
+        }
         .task-item.completed { opacity: 0.6; }
-        .task-item.completed .task-title { text-decoration: line-through; color: var(--text-muted); }
-        /* Checkbox styles managed in components.css */
+        .task-item.completed .task-title { 
+            text-decoration: line-through; 
+            color: var(--text-muted); 
+        }
+        
         .task-content { flex: 1; }
-        .task-title { font-weight: 500; font-size: 1.1rem; }
-        .task-meta { font-size: 13px; color: var(--text-secondary); margin-top: 6px; display: flex; gap: 12px; flex-wrap: wrap; }
-        .task-actions { display: flex; gap: 8px; opacity: 1; /* Always visible as per request */ }
-        .task-actions .btn { font-size: 1.5rem; padding: 8px; color: var(--text-muted); transition: color 0.2s; }
-        .task-actions .btn:hover { color: var(--error); background: rgba(255, 0, 0, 0.1); }
+        .task-title { font-weight: 500; font-size: 1.05rem; }
+        .task-meta { 
+            font-size: 12px; 
+            color: var(--text-secondary); 
+            margin-top: 4px; 
+            display: flex; 
+            gap: 10px; 
+            flex-wrap: wrap; 
+        }
+        
+        .task-actions { display: flex; gap: 8px; }
+        .task-actions .btn { 
+            font-size: 1.5rem; 
+            padding: 8px; 
+            color: var(--text-muted); 
+            transition: color 0.2s; 
+        }
+        .task-actions .btn:hover { 
+            color: var(--error); 
+            background: rgba(255, 0, 0, 0.1); 
+        }
+        
         .priority-high { border-left: 4px solid var(--error); }
         .priority-medium { border-left: 4px solid var(--warning); }
         .priority-low { border-left: 4px solid var(--info); }
-        .filter-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
-        .filter-tab { padding: 8px 16px; border-radius: 20px; cursor: pointer; transition: all 0.2s; background: var(--bg-tertiary); }
-        .filter-tab.active { background: var(--accent-primary); color: white; }
+        
+        .empty-state-small { 
+            text-align: center; 
+            padding: 32px 16px; 
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        
+        /* Loading State */
+        .skeleton-date {
+            height: 80px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 16px;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
     </style>
 </head>
 <body>
@@ -68,29 +218,11 @@
 
     <main class="main-wrapper">
         <header class="page-header-simple">
-            <div><h1 class="page-title">Tasks</h1><p class="page-subtitle">Manage your daily tasks</p></div>
+            <div><h1 class="page-title">Tasks</h1><p class="page-subtitle">Organize your tasks by date</p></div>
         </header>
 
         <div class="page-content page-enter">
-            <div class="card">
-                <div class="card-body">
-                    <div class="task-input-wrapper slide-in-down">
-                        <input type="text" id="taskInput" class="form-input" placeholder="Add a new task... (Press Enter)" onkeypress="if(event.key==='Enter')addTask()">
-                        <select id="taskPriority" class="form-select" style="width: auto; min-width: 120px;">
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                            <option value="low">Low</option>
-                        </select>
-                        <button class="btn btn-primary" onclick="addTask()">Add</button>
-                    </div>
-                    <div class="filter-tabs">
-                        <div class="filter-tab active" data-filter="all" onclick="setFilter('all')">All</div>
-                        <div class="filter-tab" data-filter="pending" onclick="setFilter('pending')">Pending</div>
-                        <div class="filter-tab" data-filter="completed" onclick="setFilter('completed')">Completed</div>
-                    </div>
-                    <div class="task-list" id="taskList"></div>
-                </div>
-            </div>
+            <div id="dateSectionsContainer" class="date-sections"></div>
         </div>
     </main>
 
@@ -110,81 +242,303 @@
     <script src="js/auth.js"></script>
     <script src="js/navbar.js"></script>
     <script>
-        let tasks = [];
-        let currentFilter = 'all';
+        // State
+        let dateSections = {};
+        let expandedSections = new Set(['today', 'overdue']); // Auto-expand these by default
         
-        async function init() { if (!await Auth.requireAuth()) return; await loadTasks(); }
-        
-        async function loadTasks() {
-            const result = await API.get('/api/tasks');
-            if (result.success) { tasks = result.tasks; renderTasks(); }
-        }
-        
-        function setFilter(filter) {
-            currentFilter = filter;
-            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-            document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
-            renderTasks();
-        }
-        
-        function renderTasks() {
-            const list = document.getElementById('taskList');
-            let filtered = tasks;
-            if (currentFilter === 'pending') filtered = tasks.filter(t => !t.is_completed);
-            if (currentFilter === 'completed') filtered = tasks.filter(t => t.is_completed);
+        // Utility: Format date
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
             
-            if (filtered.length === 0) {
-                list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📝</div><h3 class="empty-state-title">No tasks</h3><p class="text-muted">Add a task above to get started!</p></div>';
-                return;
+            // Normalize to date only (remove time)
+            const normalize = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            const normDate = normalize(date);
+            const normToday = normalize(today);
+            const normTomorrow = normalize(tomorrow);
+            const normYesterday = normalize(yesterday);
+            
+            if (normDate.getTime() === normToday.getTime()) return 'Today';
+            if (normDate.getTime() === normTomorrow.getTime()) return 'Tomorrow';
+            if (normDate.getTime() === normYesterday.getTime()) return 'Yesterday';
+            
+            const options = { weekday: 'long', month: 'short', day: 'numeric' };
+            return date.toLocaleDateString('en-US', options);
+        }
+        
+        // Utility: Get date badge
+        function getDateBadge(dateStr) {
+            const date = new Date(dateStr);
+            const today = new Date();
+            const normalize = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            
+            if (normalize(date).getTime() === normalize(today).getTime()) {
+                return '<span class="date-badge today">Today</span>';
+            } else if (date < today) {
+                return '<span class="date-badge overdue">Past</span>';
+            } else {
+                return '<span class="date-badge upcoming">Upcoming</span>';
+            }
+        }
+        
+        // Initialize
+        async function init() {
+            if (!await Auth.requireAuth()) return;
+            await loadAllTasks();
+        }
+        
+        // Load all tasks and organize by date
+        async function loadAllTasks() {
+            const container = document.getElementById('dateSectionsContainer');
+            container.innerHTML = '<div class="skeleton-date"></div><div class="skeleton-date"></div><div class="skeleton-date"></div>';
+            
+            try {
+                // Fetch overdue tasks
+                const overdueResult = await API.get('/api/tasks/overdue');
+                const overdueTasks = overdueResult.success ? overdueResult.tasks : [];
+                
+                // Fetch no-date tasks (backlog)
+                const backlogResult = await API.get('/api/tasks/no-date');
+                const backlogTasks = backlogResult.success ? backlogResult.tasks : [];
+                
+                // Fetch dates with tasks
+                const datesResult = await API.get('/api/tasks/dates');
+                const dates = datesResult.success ? datesResult.dates : [];
+                
+                // Build sections
+                dateSections = {
+                    overdue: { type: 'overdue', tasks: overdueTasks, count: overdueTasks.length },
+                    backlog: { type: 'backlog', tasks: backlogTasks, count: backlogTasks.length }
+                };
+                
+                // Add date sections
+                for (const dateInfo of dates) {
+                    const tasksResult = await API.get(`/api/tasks/by-date/${dateInfo.date}`);
+                    if (tasksResult.success) {
+                        dateSections[dateInfo.date] = {
+                            type: 'date',
+                            date: dateInfo.date,
+                            tasks: tasksResult.tasks,
+                            stats: tasksResult.stats
+                        };
+                    }
+                }
+                
+                renderAllSections();
+            } catch (error) {
+                console.error('Failed to load tasks:', error);
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">❌</div><h3 class="empty-state-title">Failed to load tasks</h3><p class="text-muted">Please refresh the page</p></div>';
+            }
+        }
+        
+        // Render all sections
+        function renderAllSections() {
+            const container = document.getElementById('dateSectionsContainer');
+            let html = '';
+            
+            // Overdue section
+            if (dateSections.overdue && dateSections.overdue.count > 0) {
+                html += renderDateSection('overdue', dateSections.overdue);
             }
             
-            list.innerHTML = filtered.map((t, index) => `
-                <div class="task-item priority-${t.priority} ${t.is_completed ? 'completed' : ''}" id="task-${t.id}">
-                    <div class="checkbox-wrapper-12" style="margin-right: 12px;">
-                        <div class="cbx">
-                            <input type="checkbox" id="cbx-task-${t.id}" ${t.is_completed ? 'checked' : ''} onchange="toggleTask(event, ${t.id})">
-                            <label for="cbx-task-${t.id}"></label>
-                            <svg fill="none" viewBox="0 0 15 14" height="14" width="15">
-                                <path d="M2 8.36364L6.23077 12L13 2"></path>
-                            </svg>
+            // Date sections (sorted)
+            const dateSectionKeys = Object.keys(dateSections)
+                .filter(key => dateSections[key].type === 'date')
+                .sort((a, b) => new Date(a) - new Date(b));
+            
+            for (const dateKey of dateSectionKeys) {
+                html += renderDateSection(dateKey, dateSections[dateKey]);
+            }
+            
+            // Backlog section
+            if (dateSections.backlog && dateSections.backlog.count > 0) {
+                html += renderDateSection('backlog', dateSections.backlog);
+            }
+            
+            // Empty state
+            if (Object.keys(dateSections).filter(k => dateSections[k].count > 0).length === 0) {
+                html = '<div class="empty-state"><div class="empty-state-icon">📝</div><h3 class="empty-state-title">No tasks yet</h3><p class="text-muted">Create your first task to get started!</p></div>';
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        // Render individual date section
+        function renderDateSection(sectionKey, section) {
+            const isExpanded = expandedSections.has(sectionKey);
+            let title, badge, stats;
+            
+            if (section.type === 'overdue') {
+                title = 'Overdue Tasks';
+                badge = '<span class="date-badge overdue">Overdue</span>';
+                stats = `${section.count} task${section.count !== 1 ? 's' : ''}`;
+            } else if (section.type === 'backlog') {
+                title = 'No Date (Backlog)';
+                badge = '<span class="date-badge backlog">Backlog</span>';
+                stats = `${section.count} task${section.count !== 1 ? 's' : ''}`;
+            } else {
+                title = formatDate(section.date);
+                badge = getDateBadge(section.date);
+                const percent = section.stats.percentage || 0;
+                stats = `
+                    <span>${section.stats.completed} of ${section.stats.total} completed</span>
+                    <div class="progress-bar-mini">
+                        <div class="progress-bar-mini-fill" style="width: ${percent}%"></div>
+                    </div>
+                    <span>${percent}%</span>
+                `;
+            }
+            
+            return `
+                <div class="date-section ${isExpanded ? 'expanded' : ''}" data-section="${sectionKey}">
+                    <div class="date-header" onclick="toggleSection('${sectionKey}')">
+                        <div class="date-info">
+                            <div class="date-title">
+                                ${title}
+                                ${badge}
+                            </div>
+                            <div class="date-stats">${stats}</div>
+                        </div>
+                        <div class="date-actions">
+                            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); showQuickAdd('${sectionKey}')">+ Add Task</button>
+                            <span class="expand-icon">▶</span>
                         </div>
                     </div>
-                    <div class="task-content">
-                        <div class="task-title">${t.title}</div>
-                        <div class="task-meta">
-                            <span class="badge badge-${t.priority === 'high' ? 'error' : t.priority === 'medium' ? 'warning' : 'info'}">${t.priority}</span>
-                            ${t.due_date ? `<span>📅 ${t.due_date}</span>` : ''}
+                    <div class="date-content">
+                        <div class="quick-add-section" id="quickAdd-${sectionKey}" style="display: none;">
+                            <form class="quick-add-form" onsubmit="event.preventDefault(); addTask('${sectionKey}')">
+                                <input type="text" id="taskTitle-${sectionKey}" class="form-input" placeholder="Task title..." required>
+                                <select id="taskPriority-${sectionKey}" class="form-select">
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
+                                    <option value="low">Low</option>
+                                </select>
+                                <button type="submit" class="btn btn-primary">Create</button>
+                                <button type="button" class="btn btn-ghost" onclick="hideQuickAdd('${sectionKey}')">Cancel</button>
+                            </form>
                         </div>
+                        ${renderTaskList(section.tasks)}
                     </div>
-                    <div class="task-actions"><button class="btn btn-ghost btn-sm" onclick="deleteTask(${t.id})">🗑️</button></div>
                 </div>
-            `).join('');
+            `;
         }
         
-        async function addTask() {
-            const input = document.getElementById('taskInput');
-            const priority = document.getElementById('taskPriority').value;
-            if (!input.value.trim()) return;
-            const result = await API.post('/api/tasks', { title: input.value, priority, due_date: DateUtils.today() });
-            if (result.success) { input.value = ''; await loadTasks(); Toast.success('Task added!'); }
+        // Render task list
+        function renderTaskList(tasks) {
+            if (!tasks || tasks.length === 0) {
+                return '<div class="empty-state-small">No tasks for this date</div>';
+            }
+            
+            return `
+                <div class="task-list">
+                    ${tasks.map(task => `
+                        <div class="task-item priority-${task.priority} ${task.is_completed ? 'completed' : ''}" id="task-${task.id}">
+                            <div class="checkbox-wrapper-12" style="margin-right: 12px;">
+                                <div class="cbx">
+                                    <input type="checkbox" id="cbx-task-${task.id}" ${task.is_completed ? 'checked' : ''} onchange="toggleTask(event, ${task.id})">
+                                    <label for="cbx-task-${task.id}"></label>
+                                    <svg fill="none" viewBox="0 0 15 14" height="14" width="15">
+                                        <path d="M2 8.36364L6.23077 12L13 2"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="task-content">
+                                <div class="task-title">${task.title}</div>
+                                <div class="task-meta">
+                                    <span class="badge badge-${task.priority === 'high' ? 'error' : task.priority === 'medium' ? 'warning' : 'info'}">${task.priority}</span>
+                                    ${task.due_date ? `<span>📅 ${formatDate(task.due_date)}</span>` : '<span>📋 No date</span>'}
+                                </div>
+                            </div>
+                            <div class="task-actions">
+                                <button class="btn btn-ghost btn-sm" onclick="deleteTask(${task.id})">🗑️</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
         }
         
+        // Toggle section expand/collapse
+        function toggleSection(sectionKey) {
+            const section = document.querySelector(`[data-section="${sectionKey}"]`);
+            if (!section) return;
+            
+            if (expandedSections.has(sectionKey)) {
+                expandedSections.delete(sectionKey);
+                section.classList.remove('expanded');
+            } else {
+                expandedSections.add(sectionKey);
+                section.classList.add('expanded');
+            }
+        }
+        
+        // Show quick add form
+        function showQuickAdd(sectionKey) {
+            const quickAdd = document.getElementById(`quickAdd-${sectionKey}`);
+            if (quickAdd) {
+                quickAdd.style.display = 'block';
+                document.getElementById(`taskTitle-${sectionKey}`).focus();
+            }
+        }
+        
+        // Hide quick add form
+        function hideQuickAdd(sectionKey) {
+            const quickAdd = document.getElementById(`quickAdd-${sectionKey}`);
+            if (quickAdd) {
+                quickAdd.style.display = 'none';
+                document.getElementById(`taskTitle-${sectionKey}`).value = '';
+            }
+        }
+        
+        // Add task
+        async function addTask(sectionKey) {
+            const titleInput = document.getElementById(`taskTitle-${sectionKey}`);
+            const prioritySelect = document.getElementById(`taskPriority-${sectionKey}`);
+            
+            if (!titleInput.value.trim()) return;
+            
+            let dueDate = null;
+            if (sectionKey !== 'overdue' && sectionKey !== 'backlog') {
+                dueDate = sectionKey; // Date string
+            } else if (sectionKey === 'overdue') {
+                // Default to today for overdue section
+                dueDate = new Date().toISOString().split('T')[0];
+            }
+            // For backlog, leave dueDate as null
+            
+            const result = await API.post('/api/tasks', {
+                title: titleInput.value,
+                priority: prioritySelect.value,
+                due_date: dueDate
+            });
+            
+            if (result.success) {
+                Toast.success('Task created!');
+                hideQuickAdd(sectionKey);
+                await loadAllTasks();
+            }
+        }
+        
+        // Toggle task completion
         async function toggleTask(event, id) {
-            // Add splashing class to trigger animation on the clicked element only
             if (event && event.target) {
                 event.target.classList.add('splashing');
             }
-            // Wait for animation to largely complete before refreshing
             await new Promise(r => setTimeout(r, 600));
-            await API.patch(`/api/tasks/${id}/complete`); 
-            await loadTasks(); 
+            await API.patch(`/api/tasks/${id}/complete`);
+            await loadAllTasks();
         }
         
+        // Delete task
         async function deleteTask(id) {
             const el = document.getElementById(`task-${id}`);
-            el.classList.add('deleting');
+            if (el) el.classList.add('deleting');
             await API.delete(`/api/tasks/${id}`);
-            setTimeout(() => loadTasks(), 300);
+            setTimeout(() => loadAllTasks(), 300);
         }
         
         init();
