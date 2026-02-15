@@ -81,9 +81,11 @@ class ReportScheduler:
     def __init__(self):
         self.stop_event = threading.Event()
         self.thread = None
-        self.weekly_hour = 9  # 9 AM
+        self.weekly_hour = 23  # 11 PM
+        self.weekly_minute = 30  # 30 minutes
         self.weekly_day = 6   # Sunday (0=Monday, 6=Sunday)
         self.monthly_hour = 9 # 9 AM
+        self.monthly_minute = 0  # 0 minutes
         self.monthly_day = 1  # 1st of month
 
     def start(self):
@@ -92,8 +94,8 @@ class ReportScheduler:
             self.thread = threading.Thread(target=self._run, daemon=True)
             self.thread.start()
             print("🕒 Scheduler Started: Automated Reporting System is ONLINE.")
-            print(f"   📅 Weekly reports: Every Sunday at {self.weekly_hour}:00 AM")
-            print(f"   📅 Monthly reports: 1st of each month at {self.monthly_hour}:00 AM")
+            print(f"   📅 Weekly reports: Every Sunday at {self.weekly_hour:02d}:{self.weekly_minute:02d}")
+            print(f"   📅 Monthly reports: 1st of each month at {self.monthly_hour:02d}:{self.monthly_minute:02d}")
 
     def stop(self):
         """Stop the scheduler thread."""
@@ -112,16 +114,18 @@ class ReportScheduler:
             now = datetime.datetime.now()
             today = now.date()
             
-            # Weekly Report: Sunday at specified hour
+            # Weekly Report: Sunday at specified hour and minute
             if (now.weekday() == self.weekly_day and 
                 now.hour == self.weekly_hour and 
+                now.minute == self.weekly_minute and 
                 last_weekly_run != today):
                 generate_and_send_reports("weekly")
                 last_weekly_run = today
             
-            # Monthly Report: 1st of month at specified hour
+            # Monthly Report: 1st of month at specified hour and minute
             if (now.day == self.monthly_day and 
                 now.hour == self.monthly_hour and 
+                now.minute == self.monthly_minute and 
                 last_monthly_run != today):
                 generate_and_send_reports("monthly")
                 last_monthly_run = today
