@@ -382,6 +382,31 @@
                 totalTasks += dateSections.overdue.count;
             }
             
+            // Get today, tomorrow, yesterday dates
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+            
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            
+            // Ensure Today, Tomorrow, Yesterday always exist (even if empty)
+            const importantDates = [yesterdayStr, todayStr, tomorrowStr];
+            for (const dateStr of importantDates) {
+                if (!dateSections[dateStr]) {
+                    dateSections[dateStr] = {
+                        type: 'date',
+                        date: dateStr,
+                        tasks: [],
+                        stats: { total: 0, completed: 0, percentage: 0 }
+                    };
+                }
+            }
+            
             // Date sections (sorted)
             const dateSectionKeys = Object.keys(dateSections)
                 .filter(key => dateSections[key].type === 'date')
@@ -390,9 +415,10 @@
             console.log(`Found ${dateSectionKeys.length} date sections:`, dateSectionKeys);
             
             for (const dateKey of dateSectionKeys) {
-                console.log(`Rendering date section: ${dateKey} with ${dateSections[dateKey].tasks.length} tasks`);
+                const taskCount = dateSections[dateKey].tasks ? dateSections[dateKey].tasks.length : 0;
+                console.log(`Rendering date section: ${dateKey} with ${taskCount} tasks`);
                 html += renderDateSection(dateKey, dateSections[dateKey]);
-                totalTasks += dateSections[dateKey].tasks.length;
+                totalTasks += taskCount;
             }
             
             // Backlog section
@@ -417,6 +443,11 @@
         
         // Render individual date section
         function renderDateSection(sectionKey, section) {
+            // Auto-expand today
+            const today = new Date().toISOString().split('T')[0];
+            if (sectionKey === today) {
+                expandedSections.add(sectionKey);
+            }
             const isExpanded = expandedSections.has(sectionKey);
             let title, badge, stats;
             
