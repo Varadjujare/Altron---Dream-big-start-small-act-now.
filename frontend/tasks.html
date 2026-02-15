@@ -86,6 +86,22 @@
             align-items: center; 
             gap: 12px; 
         }
+        .btn-add-task {
+            padding: 8px 16px !important;
+            background: var(--accent-primary) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 8px !important;
+            font-weight: 500 !important;
+            font-size: 0.9rem !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+        }
+        .btn-add-task:hover {
+            background: var(--accent-hover) !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 255, 136, 0.3) !important;
+        }
         .expand-icon { 
             font-size: 1.5rem; 
             transition: transform 0.3s ease; 
@@ -287,6 +303,7 @@
         
         // Initialize
         async function init() {
+            console.log('🚀 Initializing tasks page...');
             if (!await Auth.requireAuth()) return;
             await loadAllTasks();
         }
@@ -297,17 +314,28 @@
             container.innerHTML = '<div class="skeleton-date"></div><div class="skeleton-date"></div><div class="skeleton-date"></div>';
             
             try {
+                console.log('📥 Loading tasks...');
+                
                 // Fetch overdue tasks
+                console.log('Fetching overdue tasks...');
                 const overdueResult = await API.get('/api/tasks/overdue');
+                console.log('Overdue result:', overdueResult);
                 const overdueTasks = overdueResult.success ? overdueResult.tasks : [];
+                console.log(`Found ${overdueTasks.length} overdue tasks`);
                 
                 // Fetch no-date tasks (backlog)
+                console.log('Fetching backlog tasks...');
                 const backlogResult = await API.get('/api/tasks/no-date');
+                console.log('Backlog result:', backlogResult);
                 const backlogTasks = backlogResult.success ? backlogResult.tasks : [];
+                console.log(`Found ${backlogTasks.length} backlog tasks`);
                 
                 // Fetch dates with tasks
+                console.log('Fetching dates with tasks...');
                 const datesResult = await API.get('/api/tasks/dates');
+                console.log('Dates result:', datesResult);
                 const dates = datesResult.success ? datesResult.dates : [];
+                console.log(`Found ${dates.length} unique dates with tasks`);
                 
                 // Build sections
                 dateSections = {
@@ -317,7 +345,9 @@
                 
                 // Add date sections
                 for (const dateInfo of dates) {
+                    console.log(`Fetching tasks for date: ${dateInfo.date}`);
                     const tasksResult = await API.get(`/api/tasks/by-date/${dateInfo.date}`);
+                    console.log(`Tasks for ${dateInfo.date}:`, tasksResult);
                     if (tasksResult.success) {
                         dateSections[dateInfo.date] = {
                             type: 'date',
@@ -328,21 +358,28 @@
                     }
                 }
                 
+                console.log('📊 Final dateSections:', dateSections);
+                console.log('Total sections:', Object.keys(dateSections).length);
                 renderAllSections();
             } catch (error) {
-                console.error('Failed to load tasks:', error);
-                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">❌</div><h3 class="empty-state-title">Failed to load tasks</h3><p class="text-muted">Please refresh the page</p></div>';
+                console.error('❌ Failed to load tasks:', error);
+                console.error('Error details:', error.message, error.stack);
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">❌</div><h3 class="empty-state-title">Failed to load tasks</h3><p class="text-muted">Check console for errors. Please refresh the page.</p></div>';
             }
         }
         
         // Render all sections
         function renderAllSections() {
+            console.log('🎨 Rendering all sections...');
             const container = document.getElementById('dateSectionsContainer');
             let html = '';
+            let totalTasks = 0;
             
             // Overdue section
             if (dateSections.overdue && dateSections.overdue.count > 0) {
+                console.log(`Rendering overdue section with ${dateSections.overdue.count} tasks`);
                 html += renderDateSection('overdue', dateSections.overdue);
+                totalTasks += dateSections.overdue.count;
             }
             
             // Date sections (sorted)
@@ -350,21 +387,32 @@
                 .filter(key => dateSections[key].type === 'date')
                 .sort((a, b) => new Date(a) - new Date(b));
             
+            console.log(`Found ${dateSectionKeys.length} date sections:`, dateSectionKeys);
+            
             for (const dateKey of dateSectionKeys) {
+                console.log(`Rendering date section: ${dateKey} with ${dateSections[dateKey].tasks.length} tasks`);
                 html += renderDateSection(dateKey, dateSections[dateKey]);
+                totalTasks += dateSections[dateKey].tasks.length;
             }
             
             // Backlog section
             if (dateSections.backlog && dateSections.backlog.count > 0) {
+                console.log(`Rendering backlog section with ${dateSections.backlog.count} tasks`);
                 html += renderDateSection('backlog', dateSections.backlog);
+                totalTasks += dateSections.backlog.count;
             }
             
+            console.log(`📦 Total tasks to display: ${totalTasks}`);
+            
             // Empty state
-            if (Object.keys(dateSections).filter(k => dateSections[k].count > 0).length === 0) {
+            if (totalTasks === 0) {
+                console.log('⚠️ No tasks found - showing empty state');
                 html = '<div class="empty-state"><div class="empty-state-icon">📝</div><h3 class="empty-state-title">No tasks yet</h3><p class="text-muted">Create your first task to get started!</p></div>';
             }
             
+            console.log('✅ Setting container HTML');
             container.innerHTML = html;
+            console.log('✅ Render complete');
         }
         
         // Render individual date section
@@ -404,7 +452,7 @@
                             <div class="date-stats">${stats}</div>
                         </div>
                         <div class="date-actions">
-                            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); showQuickAdd('${sectionKey}')">+ Add Task</button>
+                            <button class="btn-add-task" onclick="event.stopPropagation(); showQuickAdd('${sectionKey}')">+ Add Task</button>
                             <span class="expand-icon">▶</span>
                         </div>
                     </div>
