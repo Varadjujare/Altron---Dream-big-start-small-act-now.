@@ -82,7 +82,7 @@ class ReportScheduler:
         self.stop_event = threading.Event()
         self.thread = None
         self.weekly_hour = 18  # 6 PM UTC = 11:30 PM IST
-        self.weekly_minute = 30  # 30 minutes
+        self.weekly_minute = 0  # 0 minutes (18:00 UTC)
         self.weekly_day = 6   # Sunday (0=Monday, 6=Sunday)
         self.monthly_hour = 9 # 9 AM
         self.monthly_minute = 0  # 0 minutes
