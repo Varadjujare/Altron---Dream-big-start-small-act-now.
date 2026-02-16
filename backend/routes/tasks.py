@@ -268,6 +268,25 @@ def get_no_date_tasks():
         }), 500
 
 
+@tasks_bp.route('/all-organized', methods=['GET'])
+@login_required
+def get_all_organized_tasks():
+    """Get all tasks organized by sections (overdue, dates, backlog) in one call."""
+    try:
+        organized_data = Task.get_all_organized(current_user.id)
+        
+        return jsonify({
+            'success': True,
+            'data': organized_data
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Failed to fetch tasks: {str(e)}'
+        }), 500
+
+
 @tasks_bp.route('/bulk-update-date', methods=['PATCH'])
 @login_required
 def bulk_update_task_date():

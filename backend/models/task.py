@@ -217,6 +217,73 @@ class Task:
         return [Task(**r).to_dict() for r in results]
     
     @staticmethod
+    def get_all_organized(user_id):
+        """Get all tasks organized by type (overdue, dates, backlog) in a single query."""
+        # Fetch all tasks for the user in one query
+        query = """
+            SELECT * FROM tasks 
+            WHERE user_id = %s
+            ORDER BY due_date NULLS LAST, is_completed, priority DESC, created_at DESC
+        """
+        results = execute_query(query, (user_id,), fetch_all=True)
+        
+        # Organize tasks by category
+        overdue_tasks = []
+        backlog_tasks = []
+        date_tasks = {}  # Dictionary with date as key
+        today = date.today()
+        
+        for r in results:
+            task_dict = Task(**r).to_dict()
+            
+            # Categorize task
+            if not r['due_date']:
+                # No date = backlog
+                backlog_tasks.append(task_dict)
+            elif r['due_date'] < today and not r['is_completed']:
+                # Past date and not completed = overdue
+                overdue_tasks.append(task_dict)
+            else:
+                # Has a date
+                date_str = str(r['due_date'])
+                if date_str not in date_tasks:
+                    date_tasks[date_str] = []
+                date_tasks[date_str].append(task_dict)
+        
+        # Calculate stats for each date section
+        date_sections = {}
+        for date_str, tasks in date_tasks.items():
+            total = len(tasks)
+            completed = sum(1 for t in tasks if t['is_completed'])
+            percentage = round((completed / total * 100), 1) if total > 0 else 0
+            
+            date_sections[date_str] = {
+                'type': 'date',
+                'date': date_str,
+                'tasks': tasks,
+                'stats': {
+                    'total': total,
+                    'completed': completed,
+                    'percentage': percentage
+                }
+            }
+        
+        # Return organized data
+        return {
+            'overdue': {
+                'type': 'overdue',
+                'tasks': overdue_tasks,
+                'count': len(overdue_tasks)
+            },
+            'backlog': {
+                'type': 'backlog',
+                'tasks': backlog_tasks,
+                'count': len(backlog_tasks)
+            },
+            'dates': date_sections
+        }
+    
+    @staticmethod
     def bulk_update_date(task_ids, new_date):
         """Update due_date for multiple tasks at once."""
         if not task_ids:

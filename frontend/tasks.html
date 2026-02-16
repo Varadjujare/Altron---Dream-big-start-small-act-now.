@@ -314,52 +314,33 @@
             container.innerHTML = '<div class="skeleton-date"></div><div class="skeleton-date"></div><div class="skeleton-date"></div>';
             
             try {
-                console.log('📥 Loading tasks...');
+                console.log('📥 Loading tasks with optimized bulk endpoint...');
+                const startTime = performance.now();
                 
-                // Fetch overdue tasks
-                console.log('Fetching overdue tasks...');
-                const overdueResult = await API.get('/api/tasks/overdue');
-                console.log('Overdue result:', overdueResult);
-                const overdueTasks = overdueResult.success ? overdueResult.tasks : [];
-                console.log(`Found ${overdueTasks.length} overdue tasks`);
+                // Fetch all organized task data in ONE API call! 🚀
+                const result = await API.get('/api/tasks/all-organized');
                 
-                // Fetch no-date tasks (backlog)
-                console.log('Fetching backlog tasks...');
-                const backlogResult = await API.get('/api/tasks/no-date');
-                console.log('Backlog result:', backlogResult);
-                const backlogTasks = backlogResult.success ? backlogResult.tasks : [];
-                console.log(`Found ${backlogTasks.length} backlog tasks`);
+                const endTime = performance.now();
+                console.log(`✅ Loaded all tasks in ${(endTime - startTime).toFixed(2)}ms`);
                 
-                // Fetch dates with tasks
-                console.log('Fetching dates with tasks...');
-                const datesResult = await API.get('/api/tasks/dates');
-                console.log('Dates result:', datesResult);
-                const dates = datesResult.success ? datesResult.dates : [];
-                console.log(`Found ${dates.length} unique dates with tasks`);
-                
-                // Build sections
-                dateSections = {
-                    overdue: { type: 'overdue', tasks: overdueTasks, count: overdueTasks.length },
-                    backlog: { type: 'backlog', tasks: backlogTasks, count: backlogTasks.length }
-                };
-                
-                // Add date sections
-                for (const dateInfo of dates) {
-                    console.log(`Fetching tasks for date: ${dateInfo.date}`);
-                    const tasksResult = await API.get(`/api/tasks/by-date/${dateInfo.date}`);
-                    console.log(`Tasks for ${dateInfo.date}:`, tasksResult);
-                    if (tasksResult.success) {
-                        dateSections[dateInfo.date] = {
-                            type: 'date',
-                            date: dateInfo.date,
-                            tasks: tasksResult.tasks,
-                            stats: tasksResult.stats
-                        };
-                    }
+                if (!result.success) {
+                    throw new Error(result.message || 'Failed to load tasks');
                 }
                 
-                console.log('📊 Final dateSections:', dateSections);
-                console.log('Total sections:', Object.keys(dateSections).length);
+                const organizedData = result.data;
+                
+                // Build sections from the organized data
+                dateSections = {
+                    overdue: organizedData.overdue,
+                    backlog: organizedData.backlog,
+                    ...organizedData.dates  // Spread all date sections
+                };
+                
+                console.log('📊 Loaded sections:', Object.keys(dateSections).length);
+                console.log('📊 Overdue tasks:', organizedData.overdue.count);
+                console.log('📊 Backlog tasks:', organizedData.backlog.count);
+                console.log('📊 Date sections:', Object.keys(organizedData.dates).length);
+                
                 renderAllSections();
             } catch (error) {
                 console.error('❌ Failed to load tasks:', error);
