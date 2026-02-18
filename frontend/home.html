@@ -28,6 +28,11 @@
             background: #000000;
         }
 
+        /* Light Theme Override */
+        [data-theme="light"] .particle-canvas {
+            background: var(--bg-primary);
+        }
+
         /* Main Content Area */
         body {
             display: flex;
@@ -535,8 +540,11 @@
             const canvas = document.getElementById('particleCanvas');
             const ctx = canvas.getContext('2d');
             
-            // Green color configuration (matching accent color)
-            const particleColor = { r: 76, g: 175, b: 80 }; // #4CAF50
+            // Adapt particle color based on current theme
+            const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+            const particleColor = isLight
+                ? { r: 56, g: 142, b: 60 }   // Darker green for light bg (#388E3C)
+                : { r: 76, g: 175, b: 80 };   // Standard green for dark bg (#4CAF50)
             
             // Configuration
             const config = {

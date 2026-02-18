@@ -383,6 +383,44 @@
             .change-item { min-width: 100%; }
             .metric-stats { gap: 16px; }
         }
+
+        /* ==========================================
+           Light Theme Overrides
+           ========================================== */
+        [data-theme="light"] .heatmap-cell {
+            border-color: rgba(0, 0, 0, 0.06);
+        }
+        [data-theme="light"] .heatmap-cell.level-0 {
+            background: #ebedf0;
+            border-color: #d0d7de;
+        }
+        [data-theme="light"] .heatmap-cell.level-1 {
+            background: #9be9a8;
+            border-color: #9be9a8;
+        }
+        [data-theme="light"] .heatmap-cell.level-2 {
+            background: #40c463;
+            border-color: #40c463;
+        }
+        [data-theme="light"] .heatmap-cell.level-3 {
+            background: #30a14e;
+            border-color: #30a14e;
+        }
+        [data-theme="light"] .heatmap-cell.level-4 {
+            background: #216e39;
+            border-color: #216e39;
+        }
+        [data-theme="light"] .metric-stats {
+            border-top: 1px solid var(--border-light);
+        }
+        [data-theme="light"] .heatmap-wrapper {
+            background: rgba(76, 175, 80, 0.04);
+            border-color: rgba(76, 175, 80, 0.15);
+        }
+        [data-theme="light"] .heatmap-grid {
+            background: var(--bg-secondary);
+            border-color: var(--border-light);
+        }
     </style>
 </head>
 <body>
