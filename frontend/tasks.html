@@ -201,6 +201,40 @@
             0% { background-position: 200% 0; }
             100% { background-position: -200% 0; }
         }
+
+        /* ==========================================
+           Light Theme Overrides
+           ========================================== */
+        [data-theme="light"] .date-section {
+            background: var(--bg-card) !important;
+            border-color: var(--border-light) !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        [data-theme="light"] .date-header:hover {
+            background: var(--bg-hover) !important;
+        }
+        [data-theme="light"] .task-item {
+            background: #ffffff !important;
+            border-color: var(--border-light) !important;
+            color: var(--text-primary);
+        }
+        [data-theme="light"] .task-item:hover {
+            background: var(--bg-hover) !important;
+        }
+        [data-theme="light"] .task-title {
+            color: var(--text-primary);
+        }
+        [data-theme="light"] .progress-bar-mini {
+            background: var(--bg-active) !important;
+        }
+        [data-theme="light"] .quick-add-section {
+            background: var(--bg-tertiary) !important;
+            border-color: var(--border-medium) !important;
+        }
+        [data-theme="light"] .skeleton-date {
+            background: linear-gradient(90deg, rgba(0,0,0,0.04) 25%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.04) 75%) !important;
+            background-size: 200% 100% !important;
+        }
     </style>
 </head>
 <body>

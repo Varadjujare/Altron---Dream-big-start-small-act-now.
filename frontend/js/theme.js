@@ -6,9 +6,9 @@ const Theme = {
     storageKey: 'lifesync-theme',
     
     init() {
-        const saved = localStorage.getItem(this.storageKey);
-        const theme = saved || 'dark';
-        this.apply(theme);
+        // Always default to dark — light is never auto-restored on page load.
+        // Users can toggle to light within a session, but every fresh load starts dark.
+        this.apply('dark');
     },
     
     apply(theme) {
