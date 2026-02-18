@@ -113,6 +113,47 @@
             border-radius: 12px;
             border: 1px solid rgba(38, 166, 65, 0.08);
         }
+
+        /* Productivity Chart - Responsive Scroll Wrapper */
+        .chart-scroll-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 12px;
+            /* Custom scrollbar */
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-primary) var(--bg-tertiary);
+        }
+        .chart-scroll-container::-webkit-scrollbar {
+            height: 5px;
+        }
+        .chart-scroll-container::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+        .chart-scroll-container::-webkit-scrollbar-thumb {
+            background: var(--accent-primary);
+            border-radius: 4px;
+        }
+        .chart-scroll-inner {
+            min-width: 480px; /* Minimum width before scroll kicks in */
+        }
+        .chart-scroll-hint {
+            display: none;
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            letter-spacing: 0.3px;
+        }
+
+        /* Productivity card header stacks on mobile */
+        .productivity-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
         .period-selector { 
             display: flex; 
             gap: 10px; 
@@ -378,10 +419,14 @@
             .streak-card { padding: 20px; }
             .heatmap-grid { grid-template-columns: repeat(53, 11px); grid-template-rows: repeat(7, 11px); gap: 3px; }
             .heatmap-cell { width: 11px; height: 11px; }
-            .chart-canvas-wrapper { height: 280px; padding: 16px; }
+            .chart-canvas-wrapper { height: 260px; padding: 12px; }
+            .chart-scroll-hint { display: block; }
             .comparison-changes { flex-direction: column; }
             .change-item { min-width: 100%; }
             .metric-stats { gap: 16px; }
+            .productivity-card-header { flex-direction: column; align-items: flex-start; }
+            .period-selector { width: 100%; justify-content: space-between; }
+            .period-btn { flex: 1; text-align: center; padding: 8px 10px; }
         }
 
         /* ==========================================
@@ -498,7 +543,7 @@
 
             <!-- Productivity Score Trends -->
             <div class="card mt-lg slide-in-up" style="animation-delay: 0.3s;">
-                <div class="card-header">
+                <div class="card-header productivity-card-header">
                     <h3 class="card-title">📈 Productivity Score Trends</h3>
                     <div class="period-selector">
                         <button class="period-btn" data-period="week" onclick="changePeriod('week')">7 Days</button>
@@ -507,9 +552,14 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="chart-canvas-wrapper">
-                        <canvas id="productivityChart"></canvas>
+                    <div class="chart-scroll-container">
+                        <div class="chart-scroll-inner">
+                            <div class="chart-canvas-wrapper">
+                                <canvas id="productivityChart"></canvas>
+                            </div>
+                        </div>
                     </div>
+                    <p class="chart-scroll-hint">← Scroll to see full chart →</p>
                     <p class="text-muted text-sm">Productivity score combines habit completion (60%) and task completion (40%)</p>
                 </div>
             </div>
