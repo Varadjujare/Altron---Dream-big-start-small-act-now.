@@ -441,6 +441,27 @@ async function renderComparisonChart() {
 // EXPORT FUNCTIONALITY
 // ============================================
 
+// ============================================
+// EXPORT HELPERS
+// ============================================
+
+/**
+ * Strips emoji and non-latin special characters from a string.
+ * jsPDF's default font and some CSV viewers cannot render them,
+ * causing garbled output like â¤¢,â€œÿ¥ or Ø=Ÿ%.
+ */
+function stripEmoji(str) {
+    if (!str) return '';
+    // Remove emoji and other non-BMP characters
+    return str
+        .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')  // Emoji & symbols (supplementary plane)
+        .replace(/[\u2600-\u27BF]/g, '')           // Misc symbols, dingbats
+        .replace(/[\uFE00-\uFE0F]/g, '')           // Variation selectors
+        .replace(/\uFE0F/g, '')                    // Emoji variation selector
+        .replace(/\s{2,}/g, ' ')                   // Collapse double spaces left by removed emoji
+        .trim();
+}
+
 async function exportToCSV() {
     const exportBtn = document.getElementById('exportCSVBtn');
     if (exportBtn) exportBtn.disabled = true;
@@ -461,18 +482,19 @@ async function exportToCSV() {
         // Build CSV content
         let csv = 'Date,Type,Name,Status,Priority\n';
         
-        // Add habit logs
+        // Add habit logs (strip emoji so Excel doesn't garble them)
         result.habit_logs.forEach(log => {
-            csv += `${log.date},Habit,"${log.habit_name}",${log.status},N/A\n`;
+            csv += `${log.date},Habit,"${stripEmoji(log.habit_name)}",${log.status},N/A\n`;
         });
         
         // Add tasks
         result.tasks.forEach(task => {
-            csv += `${task.date},Task,"${task.title}",${task.status},${task.priority}\n`;
+            csv += `${task.date},Task,"${stripEmoji(task.title)}",${task.status},${task.priority}\n`;
         });
         
-        // Download CSV
-        const blob = new Blob([csv], { type: 'text/csv' });
+        // Download CSV — prepend UTF-8 BOM (\uFEFF) so Excel opens with correct encoding
+        const BOM = '\uFEFF';
+        const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -526,7 +548,7 @@ async function exportToPDF() {
         if (strengthData.success && strengthData.habits.length > 0) {
             doc.setFontSize(10);
             const tableData = strengthData.habits.map(h => [
-                h.habit_name,
+                stripEmoji(h.habit_name),
                 h.completion_rate + '%',
                 h.current_streak.toString(),
                 h.best_streak.toString(),
@@ -555,8 +577,8 @@ async function exportToPDF() {
         
         if (correlationData.success && correlationData.correlations.length > 0) {
             const corrTable = correlationData.correlations.slice(0, 10).map(c => [
-                c.habit1,
-                c.habit2,
+                stripEmoji(c.habit1),
+                stripEmoji(c.habit2),
                 Math.round(c.correlation * 100) + '%'
             ]);
             
