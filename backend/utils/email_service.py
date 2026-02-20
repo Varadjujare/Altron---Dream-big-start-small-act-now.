@@ -85,8 +85,8 @@ class EmailService:
                     msg.attach(pdf)
                     print(f"📎 Attached PDF: {os.path.basename(pdf_attachment)}")
             
-            # Connect and send
-            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
+            # Connect and send (30s timeout to avoid hanging gunicorn workers)
+            with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=30) as server:
                 server.starttls()
                 server.login(self.smtp_user, self.smtp_password)
                 server.send_message(msg)
