@@ -166,6 +166,215 @@ class EmailService:
         """
         return self.send_email(to_email, subject, html)
 
+    def send_day_pulse_report(self, to_email: str, username: str, pulse_report: str) -> bool:
+        """Send the nightly Day Pulse AI report to a user."""
+        from datetime import datetime
+        today_str = datetime.now().strftime('%A, %b %d, %Y')
+
+        # Parse the 4 lines from the AI report
+        lines = [l.strip() for l in pulse_report.strip().splitlines() if l.strip()]
+        power_combo   = next((l for l in lines if 'Power Combo'   in l), '💪 Your Power Combo: Keep completing your habits together!')
+        kryptonite    = next((l for l in lines if 'Kryptonite'    in l), '⚡ Your Kryptonite: Skipping morning habits hurts your day.')
+        hidden_insight= next((l for l in lines if 'Hidden Insight' in l), '🔍 Hidden Insight: Consistency is your superpower.')
+        prediction    = next((l for l in lines if "Prediction"    in l), '🔮 Tomorrow\'s Prediction: Start strong for a great day!')
+
+        # Strip leading emoji+label — keep the value part only
+        def extract_value(line: str, label: str) -> str:
+            if label in line:
+                parts = line.split(':', 1)
+                return parts[1].strip() if len(parts) > 1 else line
+            return line
+
+        power_val   = extract_value(power_combo,    'Power Combo')
+        krypto_val  = extract_value(kryptonite,     'Kryptonite')
+        insight_val = extract_value(hidden_insight, 'Hidden Insight')
+        predict_val = extract_value(prediction,     "Prediction")
+
+        subject = f"⚡ Your Day Pulse Report — {today_str}"
+
+        html = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Day Pulse Report</title>
+</head>
+<body style="margin:0;padding:0;background:#0a0a0f;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0f;padding:30px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0"
+               style="background:linear-gradient(135deg,#0f0f1a 0%,#1a1a2e 100%);
+                      border-radius:20px;overflow:hidden;
+                      border:1px solid rgba(0,255,136,0.25);
+                      box-shadow:0 0 40px rgba(0,255,136,0.08);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#00ff88 0%,#00cc6a 100%);
+                       padding:32px 40px;text-align:center;">
+              <div style="font-size:36px;margin-bottom:6px;">⚡</div>
+              <h1 style="margin:0;color:#0a0a0f;font-size:26px;font-weight:800;letter-spacing:-0.5px;">
+                Day Pulse Report
+              </h1>
+              <p style="margin:6px 0 0;color:rgba(0,0,0,0.65);font-size:14px;">
+                {today_str}
+              </p>
+            </td>
+          </tr>
+
+          <!-- Greeting -->
+          <tr>
+            <td style="padding:28px 40px 8px;">
+              <p style="margin:0;color:#c0c0d0;font-size:16px;line-height:1.6;">
+                Hey <strong style="color:#fff;">{username}</strong> 👋 — here's what your AI analyst
+                found hiding in your last 30 days of data:
+              </p>
+            </td>
+          </tr>
+
+          <!-- Power Combo Card -->
+          <tr>
+            <td style="padding:12px 40px;">
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="background:rgba(0,255,136,0.07);border-radius:14px;
+                            border:1px solid rgba(0,255,136,0.25);overflow:hidden;">
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <div style="display:flex;align-items:center;margin-bottom:8px;">
+                      <span style="font-size:22px;margin-right:10px;">💪</span>
+                      <span style="color:#00ff88;font-size:11px;font-weight:700;
+                                   text-transform:uppercase;letter-spacing:1.5px;">
+                        Power Combo
+                      </span>
+                    </div>
+                    <p style="margin:0;color:#e8ffe8;font-size:16px;line-height:1.5;
+                               font-weight:600;">
+                      {power_val}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Kryptonite Card -->
+          <tr>
+            <td style="padding:4px 40px;">
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="background:rgba(255,80,80,0.07);border-radius:14px;
+                            border:1px solid rgba(255,80,80,0.25);overflow:hidden;">
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <div style="margin-bottom:8px;">
+                      <span style="font-size:22px;margin-right:10px;">⚡</span>
+                      <span style="color:#ff6b6b;font-size:11px;font-weight:700;
+                                   text-transform:uppercase;letter-spacing:1.5px;">
+                        Your Kryptonite
+                      </span>
+                    </div>
+                    <p style="margin:0;color:#ffe8e8;font-size:16px;line-height:1.5;
+                               font-weight:600;">
+                      {krypto_val}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Hidden Insight Card -->
+          <tr>
+            <td style="padding:4px 40px;">
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="background:rgba(147,51,234,0.1);border-radius:14px;
+                            border:1px solid rgba(147,51,234,0.3);overflow:hidden;">
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <div style="margin-bottom:8px;">
+                      <span style="font-size:22px;margin-right:10px;">🔍</span>
+                      <span style="color:#c084fc;font-size:11px;font-weight:700;
+                                   text-transform:uppercase;letter-spacing:1.5px;">
+                        Hidden Insight
+                      </span>
+                    </div>
+                    <p style="margin:0;color:#f3e8ff;font-size:16px;line-height:1.5;
+                               font-weight:600;">
+                      {insight_val}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Tomorrow's Prediction Card -->
+          <tr>
+            <td style="padding:4px 40px 24px;">
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="background:rgba(59,130,246,0.1);border-radius:14px;
+                            border:1px solid rgba(59,130,246,0.3);overflow:hidden;">
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <div style="margin-bottom:8px;">
+                      <span style="font-size:22px;margin-right:10px;">🔮</span>
+                      <span style="color:#60a5fa;font-size:11px;font-weight:700;
+                                   text-transform:uppercase;letter-spacing:1.5px;">
+                        Tomorrow's Prediction
+                      </span>
+                    </div>
+                    <p style="margin:0;color:#e8f4ff;font-size:16px;line-height:1.5;
+                               font-weight:600;">
+                      {predict_val}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding:0 40px;">
+              <div style="border-top:1px solid rgba(255,255,255,0.07);"></div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 40px;text-align:center;">
+              <p style="margin:0 0 6px;color:#666;font-size:12px;">
+                Generated by LifeSync Day Pulse AI · Every night at 10 PM
+              </p>
+              <p style="margin:0;color:#444;font-size:11px;">
+                You're receiving this because you have an active LifeSync account.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+"""
+        text_fallback = f"""
+Day Pulse Report — {today_str}
+Hi {username},
+
+⚡ TODAY'S DAY PULSE
+
+{power_combo}
+{kryptonite}
+{hidden_insight}
+{prediction}
+
+Generated by LifeSync Day Pulse AI
+"""
+        return self.send_email(to_email, subject, html, text_content=text_fallback)
+
 
 # Global instance
 email_service = EmailService()

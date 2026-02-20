@@ -39,6 +39,9 @@ class Config:
     SMTP_FROM_NAME = os.getenv('SMTP_FROM_NAME', 'Altron Reports')
     SMTP_FROM_EMAIL = os.getenv('SMTP_FROM_EMAIL', '')
 
+    # Groq AI - Day Pulse Feature
+    GROQ_API_KEY = os.getenv('GROQ_API_KEY', '')
+
 
 class DevelopmentConfig(Config):
     """Development configuration."""

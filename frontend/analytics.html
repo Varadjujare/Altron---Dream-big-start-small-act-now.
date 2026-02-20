@@ -414,6 +414,43 @@
         .streak-value { font-size: 64px; font-weight: 700; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; line-height: 1; }
         .streak-label { font-size: 14px; color: var(--text-secondary); margin-top: 8px; }
         
+        /* Day Pulse Card Pulse Animation */
+        @keyframes pulseBorder {
+            0%   { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); }
+            70%  { box-shadow: 0 0 0 8px rgba(0, 255, 136, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
+        }
+        .day-pulse-card {
+            background: var(--bg-tertiary);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid rgba(0, 255, 136, 0.4);
+            animation: pulseBorder 2.5s infinite;
+            position: relative;
+            overflow: hidden;
+        }
+        .day-pulse-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(0,255,136,0.05) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .day-pulse-card .ai-badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #00ff88;
+            background: rgba(0,255,136,0.12);
+            border: 1px solid rgba(0,255,136,0.3);
+            border-radius: 20px;
+            padding: 2px 10px;
+            margin-bottom: 6px;
+        }
+
         @media (max-width: 768px) { 
             .streak-value { font-size: 48px; } 
             .streak-card { padding: 20px; }
@@ -632,6 +669,16 @@
                             <h4 style="margin-bottom: 8px;">Monthly Report</h4>
                             <p class="text-muted" style="font-size: 13px;">1st of every Month</p>
                             <div class="badge badge-success mt-sm" style="display: inline-block;">✅ Active</div>
+                        </div>
+
+                        <!-- ⚡ Day Pulse Card -->
+                        <div class="day-pulse-card">
+                            <div class="ai-badge">✨ AI Powered</div>
+                            <div style="font-size: 32px; margin-bottom: 12px;">⚡</div>
+                            <h4 style="margin-bottom: 8px; color: var(--text-primary);">Day Pulse</h4>
+                            <p class="text-muted" style="font-size: 13px;">Every night at 11:00 PM</p>
+                            <p class="text-muted" style="font-size: 11px; margin-top: 4px; color: rgba(0,255,136,0.7);">Groq AI · 30-day pattern analysis</p>
+                            <div class="badge badge-success mt-sm" style="display: inline-block; background: rgba(0,255,136,0.15); border: 1px solid rgba(0,255,136,0.4); color: #00ff88;">⚡ Active</div>
                         </div>
                     </div>
                 </div>
