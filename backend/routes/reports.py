@@ -189,14 +189,14 @@ def trigger_batch_reports():
 @reports_bp.route('/api/daypulse/send-now', methods=['POST'])
 @login_required
 def send_day_pulse_now():
-    """Manually send a Day Pulse report to the current user immediately."""
-    from utils.ai_day_pulse import generate_day_pulse_report
+    """Manually send a Day Pulse report to the current user immediately (background)."""
+    import threading
     from utils.email_service import EmailService
     from utils.db import get_db_connection
 
     user_id = current_user.id
 
-    # Get user email
+    # Get user email before spawning thread
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT username, email FROM users WHERE id = %s", (user_id,))
@@ -212,14 +212,22 @@ def send_day_pulse_now():
     if not email_service.is_configured:
         return jsonify({"success": False, "message": "Email service not configured"}), 500
 
-    # Generate AI report
-    report = generate_day_pulse_report(user_id)
-    if report is None:
-        report = "Your Day Pulse is starting up! Keep tracking habits and tasks for personalized AI insights."
+    def _send_in_background(uid, uname, uemail):
+        try:
+            from utils.ai_day_pulse import generate_day_pulse_report
+            report = generate_day_pulse_report(uid)
+            if report is None:
+                report = "Your Day Pulse is warming up! Keep tracking habits and tasks for personalized AI insights."
+            svc = EmailService()
+            sent = svc.send_day_pulse_report(uemail, uname, report)
+            print(f"[DayPulse manual] sent={sent} to {uemail}")
+        except Exception as ex:
+            print(f"[DayPulse manual] ERROR: {ex}")
 
-    sent = email_service.send_day_pulse_report(email, username, report)
+    t = threading.Thread(target=_send_in_background, args=(user_id, username, email), daemon=True)
+    t.start()
 
-    if sent:
-        return jsonify({"success": True, "message": f"Day Pulse sent to {email}"})
-    else:
-        return jsonify({"success": False, "message": "Failed to send Day Pulse. Check server logs."}), 500
+    return jsonify({
+        "success": True,
+        "message": f"Day Pulse is being generated and will arrive in your inbox ({email}) within 30 seconds!"
+    })
