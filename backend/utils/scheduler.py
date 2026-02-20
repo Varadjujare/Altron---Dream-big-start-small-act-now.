@@ -43,9 +43,9 @@ def generate_and_send_day_pulse():
             report = generate_day_pulse_report(user['id'])
 
             if report is None:
-                print(f"⚠️  Skipping {user['username']} — no data or API error")
-                fail_count += 1
-                continue
+                print(f"⚠️  User {user['id']} has no habit/task data in 30 days — sending basic report anyway.")
+                # Don't return None — still send with a basic message
+                report = "No recent activity found. Keep tracking your habits and tasks to get personalized insights!"
 
             # Send HTML email
             sent = email_service.send_day_pulse_report(
@@ -190,8 +190,8 @@ class ReportScheduler:
                 generate_and_send_day_pulse()
                 last_pulse_run = today
 
-            # Sleep for 30 seconds between checks
-            time.sleep(30)
+            # Sleep for 20 seconds between checks (3x per minute = never misses trigger)
+            time.sleep(20)
     
     def trigger_now(self, report_type: str = "weekly"):
         """Manually trigger a report generation (for testing)."""

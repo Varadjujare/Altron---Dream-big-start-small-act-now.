@@ -184,3 +184,42 @@ def trigger_batch_reports():
         "success": True, 
         "message": f"Batch {period} report generation triggered. Check server logs."
     })
+
+
+@reports_bp.route('/api/daypulse/send-now', methods=['POST'])
+@login_required
+def send_day_pulse_now():
+    """Manually send a Day Pulse report to the current user immediately."""
+    from utils.ai_day_pulse import generate_day_pulse_report
+    from utils.email_service import EmailService
+    from utils.db import get_db_connection
+
+    user_id = current_user.id
+
+    # Get user email
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT username, email FROM users WHERE id = %s", (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+
+    if not row or not row[1]:
+        return jsonify({"success": False, "message": "No email address on file"}), 400
+
+    username, email = row[0], row[1]
+
+    email_service = EmailService()
+    if not email_service.is_configured:
+        return jsonify({"success": False, "message": "Email service not configured"}), 500
+
+    # Generate AI report
+    report = generate_day_pulse_report(user_id)
+    if report is None:
+        report = "Your Day Pulse is starting up! Keep tracking habits and tasks for personalized AI insights."
+
+    sent = email_service.send_day_pulse_report(email, username, report)
+
+    if sent:
+        return jsonify({"success": True, "message": f"Day Pulse sent to {email}"})
+    else:
+        return jsonify({"success": False, "message": "Failed to send Day Pulse. Check server logs."}), 500
