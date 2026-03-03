@@ -67,7 +67,7 @@ def send_report_now():
     """Manually send a report to the current user via email."""
     from utils.report_generator import report_generator
     from utils.email_service import EmailService
-    from utils.db import get_db_connection
+    from utils.db import get_db_cursor
     
     data = request.get_json() or {}
     period = data.get('period', 'weekly')
@@ -78,11 +78,9 @@ def send_report_now():
     user_id = current_user.id
     
     # Get user email
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT username, email FROM users WHERE id = %s", (user_id,))
-    row = cursor.fetchone()
-    conn.close()
+    with get_db_cursor(dictionary=False) as (cursor, conn):
+        cursor.execute("SELECT username, email FROM users WHERE id = %s", (user_id,))
+        row = cursor.fetchone()
     
     if not row or not row[1]:
         return jsonify({"success": False, "message": "No email address on file"}), 400
@@ -140,15 +138,13 @@ def get_report_stats(period):
 def test_email():
     """Send a test email to verify configuration."""
     from utils.email_service import email_service
-    from utils.db import get_db_connection
+    from utils.db import get_db_cursor
     
     user_id = current_user.id
     
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT email FROM users WHERE id = %s", (user_id,))
-    row = cursor.fetchone()
-    conn.close()
+    with get_db_cursor(dictionary=False) as (cursor, conn):
+        cursor.execute("SELECT email FROM users WHERE id = %s", (user_id,))
+        row = cursor.fetchone()
     
     if not row or not row[0]:
         return jsonify({"success": False, "message": "No email address on file"}), 400
@@ -192,16 +188,14 @@ def send_day_pulse_now():
     """Manually send a Day Pulse report to the current user immediately (background)."""
     import threading
     from utils.email_service import EmailService
-    from utils.db import get_db_connection
+    from utils.db import get_db_cursor
 
     user_id = current_user.id
 
     # Get user email before spawning thread
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT username, email FROM users WHERE id = %s", (user_id,))
-    row = cursor.fetchone()
-    conn.close()
+    with get_db_cursor(dictionary=False) as (cursor, conn):
+        cursor.execute("SELECT username, email FROM users WHERE id = %s", (user_id,))
+        row = cursor.fetchone()
 
     if not row or not row[1]:
         return jsonify({"success": False, "message": "No email address on file"}), 400

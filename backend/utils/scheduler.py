@@ -7,16 +7,14 @@ import time
 import threading
 import datetime
 
-from utils.db import get_db_connection
+from utils.db import get_db_connection, get_db_cursor
 
 
 def get_all_users_with_email():
     """Fetch all users who have an email address."""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, username, email FROM users WHERE email IS NOT NULL AND email != ''")
-    users = [{"id": row[0], "username": row[1], "email": row[2]} for row in cursor.fetchall()]
-    conn.close()
+    with get_db_cursor(dictionary=False) as (cursor, conn):
+        cursor.execute("SELECT id, username, email FROM users WHERE email IS NOT NULL AND email != ''")
+        users = [{"id": row[0], "username": row[1], "email": row[2]} for row in cursor.fetchall()]
     return users
 
 

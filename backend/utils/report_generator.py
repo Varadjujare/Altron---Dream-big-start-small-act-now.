@@ -6,7 +6,7 @@ Generates weekly and monthly progress reports for users.
 import os
 import datetime
 from typing import Dict, Any, Optional
-from utils.db import get_db_connection
+from utils.db import get_db_connection, get_db_cursor
 
 # Try to import weasyprint for PDF generation (optional)
 try:
@@ -27,11 +27,9 @@ class ReportGenerator:
     
     def get_user_data(self, user_id: int) -> Optional[Dict[str, Any]]:
         """Fetch user details from database."""
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, username, email FROM users WHERE id = %s", (user_id,))
-        row = cursor.fetchone()
-        conn.close()
+        with get_db_cursor(dictionary=False) as (cursor, conn):
+            cursor.execute("SELECT id, username, email FROM users WHERE id = %s", (user_id,))
+            row = cursor.fetchone()
         
         if row:
             return {"id": row[0], "username": row[1], "email": row[2]}
@@ -39,58 +37,54 @@ class ReportGenerator:
     
     def get_productivity_scores(self, user_id: int, start_date: datetime.date, end_date: datetime.date) -> Dict[str, Any]:
         """Calculate daily productivity scores for the period."""
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         scores = []
         current_date = start_date
         
-        while current_date <= end_date:
-            # Get habits for the day
-            cursor.execute("""
-                SELECT COUNT(DISTINCT h.id) as total_habits
-                FROM habits h
-                WHERE h.user_id = %s AND h.is_active = TRUE
-            """, (user_id,))
-            total_habits = cursor.fetchone()[0] or 1
-            
-            cursor.execute("""
-                SELECT COUNT(DISTINCT hl.habit_id) as completed
-                FROM habit_logs hl
-                JOIN habits h ON hl.habit_id = h.id
-                WHERE h.user_id = %s AND hl.completed_date = %s AND h.is_active = TRUE
-            """, (user_id, current_date.isoformat()))
-            completed_habits = cursor.fetchone()[0] or 0
-            
-            habit_score = round((completed_habits / max(total_habits, 1)) * 100, 1)
-            
-            # Get tasks for the day
-            cursor.execute("""
-                SELECT 
-                    COUNT(*) as total,
-                    SUM(CASE WHEN is_completed = TRUE THEN 1 ELSE 0 END) as completed
-                FROM tasks
-                WHERE user_id = %s AND (due_date = %s OR (due_date IS NULL AND created_at::DATE = %s))
-            """, (user_id, current_date.isoformat(), current_date.isoformat()))
-            task_row = cursor.fetchone()
-            total_tasks = task_row[0] or 1
-            completed_tasks = task_row[1] or 0
-            
-            task_score = round((completed_tasks / max(total_tasks, 1)) * 100, 1)
-            
-            # Weighted productivity score (60% habits, 40% tasks)
-            productivity_score = round((habit_score * 0.6) + (task_score * 0.4), 1)
-            
-            scores.append({
-                "date": current_date.isoformat(),
-                "score": productivity_score,
-                "habit_score": habit_score,
-                "task_score": task_score
-            })
-            
-            current_date += datetime.timedelta(days=1)
-        
-        conn.close()
+        with get_db_cursor(dictionary=False) as (cursor, conn):
+            while current_date <= end_date:
+                # Get habits for the day
+                cursor.execute("""
+                    SELECT COUNT(DISTINCT h.id) as total_habits
+                    FROM habits h
+                    WHERE h.user_id = %s AND h.is_active = TRUE
+                """, (user_id,))
+                total_habits = cursor.fetchone()[0] or 1
+                
+                cursor.execute("""
+                    SELECT COUNT(DISTINCT hl.habit_id) as completed
+                    FROM habit_logs hl
+                    JOIN habits h ON hl.habit_id = h.id
+                    WHERE h.user_id = %s AND hl.completed_date = %s AND h.is_active = TRUE
+                """, (user_id, current_date.isoformat()))
+                completed_habits = cursor.fetchone()[0] or 0
+                
+                habit_score = round((completed_habits / max(total_habits, 1)) * 100, 1)
+                
+                # Get tasks for the day
+                cursor.execute("""
+                    SELECT 
+                        COUNT(*) as total,
+                        SUM(CASE WHEN is_completed = TRUE THEN 1 ELSE 0 END) as completed
+                    FROM tasks
+                    WHERE user_id = %s AND (due_date = %s OR (due_date IS NULL AND created_at::DATE = %s))
+                """, (user_id, current_date.isoformat(), current_date.isoformat()))
+                task_row = cursor.fetchone()
+                total_tasks = task_row[0] or 1
+                completed_tasks = task_row[1] or 0
+                
+                task_score = round((completed_tasks / max(total_tasks, 1)) * 100, 1)
+                
+                # Weighted productivity score (60% habits, 40% tasks)
+                productivity_score = round((habit_score * 0.6) + (task_score * 0.4), 1)
+                
+                scores.append({
+                    "date": current_date.isoformat(),
+                    "score": productivity_score,
+                    "habit_score": habit_score,
+                    "task_score": task_score
+                })
+                
+                current_date += datetime.timedelta(days=1)
         
         avg_score = round(sum(s["score"] for s in scores) / max(len(scores), 1), 1)
         
@@ -103,89 +97,85 @@ class ReportGenerator:
     
     def get_habit_strength(self, user_id: int) -> Dict[str, Any]:
         """Calculate habit strength metrics."""
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT id, name FROM habits
-            WHERE user_id = %s AND is_active = TRUE
-        """, (user_id,))
-        habits = cursor.fetchall()
-        
         habit_strengths = []
         
-        for habit_id, habit_name in habits:
-            # Get total days the habit has existed
+        with get_db_cursor(dictionary=False) as (cursor, conn):
             cursor.execute("""
-                SELECT MIN(completed_date) FROM habit_logs WHERE habit_id = %s
-            """, (habit_id,))
-            first_log = cursor.fetchone()[0]
+                SELECT id, name FROM habits
+                WHERE user_id = %s AND is_active = TRUE
+            """, (user_id,))
+            habits = cursor.fetchall()
             
-            if not first_log:
-                continue
-            
-            days_tracked = (datetime.date.today() - first_log).days + 1
-            
-            # Get completion count
-            cursor.execute("""
-                SELECT COUNT(*) FROM habit_logs WHERE habit_id = %s
-            """, (habit_id,))
-            completion_count = cursor.fetchone()[0] or 0
-            
-            completion_rate = round((completion_count / max(days_tracked, 1)) * 100, 1)
-            
-            # Calculate streaks
-            cursor.execute("""
-                SELECT completed_date FROM habit_logs
-                WHERE habit_id = %s
-                ORDER BY completed_date DESC
-            """, (habit_id,))
-            logs = [row[0] for row in cursor.fetchall()]
-            
-            current_streak = 0
-            best_streak = 0
-            temp_streak = 0
-            
-            if logs:
-                # Current streak
-                expected_date = datetime.date.today()
-                for log_date in logs:
-                    if log_date == expected_date or log_date == expected_date - datetime.timedelta(days=1):
-                        current_streak += 1
-                        expected_date = log_date - datetime.timedelta(days=1)
-                    else:
-                        break
+            for habit_id, habit_name in habits:
+                # Get total days the habit has existed
+                cursor.execute("""
+                    SELECT MIN(completed_date) FROM habit_logs WHERE habit_id = %s
+                """, (habit_id,))
+                first_log = cursor.fetchone()[0]
                 
-                # Best streak
-                for i, log_date in enumerate(logs):
-                    if i == 0:
-                        temp_streak = 1
-                    else:
-                        prev_date = logs[i-1]
-                        if (prev_date - log_date).days == 1:
-                            temp_streak += 1
+                if not first_log:
+                    continue
+                
+                days_tracked = (datetime.date.today() - first_log).days + 1
+                
+                # Get completion count
+                cursor.execute("""
+                    SELECT COUNT(*) FROM habit_logs WHERE habit_id = %s
+                """, (habit_id,))
+                completion_count = cursor.fetchone()[0] or 0
+                
+                completion_rate = round((completion_count / max(days_tracked, 1)) * 100, 1)
+                
+                # Calculate streaks
+                cursor.execute("""
+                    SELECT completed_date FROM habit_logs
+                    WHERE habit_id = %s
+                    ORDER BY completed_date DESC
+                """, (habit_id,))
+                logs = [row[0] for row in cursor.fetchall()]
+                
+                current_streak = 0
+                best_streak = 0
+                temp_streak = 0
+                
+                if logs:
+                    # Current streak
+                    expected_date = datetime.date.today()
+                    for log_date in logs:
+                        if log_date == expected_date or log_date == expected_date - datetime.timedelta(days=1):
+                            current_streak += 1
+                            expected_date = log_date - datetime.timedelta(days=1)
                         else:
-                            best_streak = max(best_streak, temp_streak)
+                            break
+                    
+                    # Best streak
+                    for i, log_date in enumerate(logs):
+                        if i == 0:
                             temp_streak = 1
-                best_streak = max(best_streak, temp_streak)
-            
-            # Consistency score (0-100)
-            consistency_score = round(min(
-                (completion_rate * 0.5) +
-                (min(current_streak / 7, 1) * 30) +
-                (min(best_streak / 14, 1) * 20),
-                100
-            ))
-            
-            habit_strengths.append({
-                "habit_name": habit_name,
-                "completion_rate": completion_rate,
-                "current_streak": current_streak,
-                "best_streak": best_streak,
-                "consistency_score": consistency_score
-            })
-        
-        conn.close()
+                        else:
+                            prev_date = logs[i-1]
+                            if (prev_date - log_date).days == 1:
+                                temp_streak += 1
+                            else:
+                                best_streak = max(best_streak, temp_streak)
+                                temp_streak = 1
+                    best_streak = max(best_streak, temp_streak)
+                
+                # Consistency score (0-100)
+                consistency_score = round(min(
+                    (completion_rate * 0.5) +
+                    (min(current_streak / 7, 1) * 30) +
+                    (min(best_streak / 14, 1) * 20),
+                    100
+                ))
+                
+                habit_strengths.append({
+                    "habit_name": habit_name,
+                    "completion_rate": completion_rate,
+                    "current_streak": current_streak,
+                    "best_streak": best_streak,
+                    "consistency_score": consistency_score
+                })
         
         # Sort by consistency score
         habit_strengths.sort(key=lambda x: x["consistency_score"], reverse=True)
@@ -194,56 +184,50 @@ class ReportGenerator:
     
     def get_correlations(self, user_id: int, days: int = 30) -> Dict[str, Any]:
         """Calculate habit correlations."""
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         start_date = datetime.date.today() - datetime.timedelta(days=days)
-        
-        # Get all habits
-        cursor.execute("""
-            SELECT id, name FROM habits
-            WHERE user_id = %s AND is_active = TRUE
-        """, (user_id,))
-        habits = cursor.fetchall()
-        
-        if len(habits) < 2:
-            conn.close()
-            return {"correlations": [], "message": "Need at least 2 habits to analyze correlations"}
-        
         correlations = []
         
-        # Check each pair of habits
-        for i, (habit1_id, habit1_name) in enumerate(habits):
-            for habit2_id, habit2_name in habits[i+1:]:
-                # Get days where both were completed
-                cursor.execute("""
-                    SELECT COUNT(DISTINCT hl1.completed_date)
-                    FROM habit_logs hl1
-                    JOIN habit_logs hl2 ON hl1.completed_date = hl2.completed_date
-                    WHERE hl1.habit_id = %s AND hl2.habit_id = %s
-                    AND hl1.completed_date >= %s
-                """, (habit1_id, habit2_id, start_date.isoformat()))
-                both_completed = cursor.fetchone()[0] or 0
-                
-                # Get total days either was completed
-                cursor.execute("""
-                    SELECT COUNT(DISTINCT completed_date)
-                    FROM habit_logs
-                    WHERE habit_id IN (%s, %s) AND completed_date >= %s
-                """, (habit1_id, habit2_id, start_date.isoformat()))
-                either_completed = cursor.fetchone()[0] or 1
-                
-                correlation = both_completed / max(either_completed, 1)
-                
-                if correlation >= 0.3 and both_completed >= 3:
-                    correlations.append({
-                        "habit1": habit1_name,
-                        "habit2": habit2_name,
-                        "correlation": correlation,
-                        "days_together": both_completed
-                    })
-        
-        conn.close()
+        with get_db_cursor(dictionary=False) as (cursor, conn):
+            # Get all habits
+            cursor.execute("""
+                SELECT id, name FROM habits
+                WHERE user_id = %s AND is_active = TRUE
+            """, (user_id,))
+            habits = cursor.fetchall()
+            
+            if len(habits) < 2:
+                return {"correlations": [], "message": "Need at least 2 habits to analyze correlations"}
+            
+            # Check each pair of habits
+            for i, (habit1_id, habit1_name) in enumerate(habits):
+                for habit2_id, habit2_name in habits[i+1:]:
+                    # Get days where both were completed
+                    cursor.execute("""
+                        SELECT COUNT(DISTINCT hl1.completed_date)
+                        FROM habit_logs hl1
+                        JOIN habit_logs hl2 ON hl1.completed_date = hl2.completed_date
+                        WHERE hl1.habit_id = %s AND hl2.habit_id = %s
+                        AND hl1.completed_date >= %s
+                    """, (habit1_id, habit2_id, start_date.isoformat()))
+                    both_completed = cursor.fetchone()[0] or 0
+                    
+                    # Get total days either was completed
+                    cursor.execute("""
+                        SELECT COUNT(DISTINCT completed_date)
+                        FROM habit_logs
+                        WHERE habit_id IN (%s, %s) AND completed_date >= %s
+                    """, (habit1_id, habit2_id, start_date.isoformat()))
+                    either_completed = cursor.fetchone()[0] or 1
+                    
+                    correlation = both_completed / max(either_completed, 1)
+                    
+                    if correlation >= 0.3 and both_completed >= 3:
+                        correlations.append({
+                            "habit1": habit1_name,
+                            "habit2": habit2_name,
+                            "correlation": correlation,
+                            "days_together": both_completed
+                        })
         
         # Sort by correlation strength
         correlations.sort(key=lambda x: x["correlation"], reverse=True)
@@ -255,62 +239,55 @@ class ReportGenerator:
     
     def get_heatmap_data(self, user_id: int, days: int = 30) -> Dict[str, Any]:
         """Get heatmap activity data for the period."""
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         end_date = datetime.date.today()
         start_date = end_date - datetime.timedelta(days=days-1)
-        
-        cursor.execute("""
-            SELECT COUNT(*) FROM habits WHERE user_id = %s AND is_active = TRUE
-        """, (user_id,))
-        total_habits = cursor.fetchone()[0] or 1
-        
         heatmap_data = []
-        current_date = start_date
         
-        while current_date <= end_date:
+        with get_db_cursor(dictionary=False) as (cursor, conn):
             cursor.execute("""
-                SELECT COUNT(DISTINCT hl.habit_id) as completed
-                FROM habit_logs hl
-                JOIN habits h ON hl.habit_id = h.id
-                WHERE h.user_id = %s AND hl.completed_date = %s AND h.is_active = TRUE
-            """, (user_id, current_date.isoformat()))
+                SELECT COUNT(*) FROM habits WHERE user_id = %s AND is_active = TRUE
+            """, (user_id,))
+            total_habits = cursor.fetchone()[0] or 1
             
-            completed = cursor.fetchone()[0] or 0
-            percentage = round((completed / max(total_habits, 1)) * 100)
+            current_date = start_date
             
-            # Level for heatmap (0-4)
-            if percentage == 0:
-                level = 0
-            elif percentage <= 25:
-                level = 1
-            elif percentage <= 50:
-                level = 2
-            elif percentage <= 75:
-                level = 3
-            else:
-                level = 4
-            
-            heatmap_data.append({
-                "date": current_date.isoformat(),
-                "completed": completed,
-                "total": total_habits,
-                "percentage": percentage,
-                "level": level
-            })
-            
-            current_date += datetime.timedelta(days=1)
-        
-        conn.close()
+            while current_date <= end_date:
+                cursor.execute("""
+                    SELECT COUNT(DISTINCT hl.habit_id) as completed
+                    FROM habit_logs hl
+                    JOIN habits h ON hl.habit_id = h.id
+                    WHERE h.user_id = %s AND hl.completed_date = %s AND h.is_active = TRUE
+                """, (user_id, current_date.isoformat()))
+                
+                completed = cursor.fetchone()[0] or 0
+                percentage = round((completed / max(total_habits, 1)) * 100)
+                
+                # Level for heatmap (0-4)
+                if percentage == 0:
+                    level = 0
+                elif percentage <= 25:
+                    level = 1
+                elif percentage <= 50:
+                    level = 2
+                elif percentage <= 75:
+                    level = 3
+                else:
+                    level = 4
+                
+                heatmap_data.append({
+                    "date": current_date.isoformat(),
+                    "completed": completed,
+                    "total": total_habits,
+                    "percentage": percentage,
+                    "level": level
+                })
+                
+                current_date += datetime.timedelta(days=1)
         
         return {"data": heatmap_data}
     
     def get_comparison_stats(self, user_id: int, period: str = "weekly") -> Dict[str, Any]:
         """Compare current period with previous period."""
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         today = datetime.date.today()
         
         if period == "weekly":
@@ -326,27 +303,26 @@ class ReportGenerator:
         previous_start = current_start - datetime.timedelta(days=days)
         previous_end = current_start
         
-        def get_period_stats(start, end):
-            cursor.execute("""
-                SELECT COUNT(*) FROM habit_logs hl
-                JOIN habits h ON hl.habit_id = h.id
-                WHERE h.user_id = %s AND hl.completed_date >= %s AND hl.completed_date < %s
-            """, (user_id, start.isoformat(), end.isoformat()))
-            habits_completed = cursor.fetchone()[0] or 0
+        with get_db_cursor(dictionary=False) as (cursor, conn):
+            def get_period_stats(start, end):
+                cursor.execute("""
+                    SELECT COUNT(*) FROM habit_logs hl
+                    JOIN habits h ON hl.habit_id = h.id
+                    WHERE h.user_id = %s AND hl.completed_date >= %s AND hl.completed_date < %s
+                """, (user_id, start.isoformat(), end.isoformat()))
+                habits_completed = cursor.fetchone()[0] or 0
+                
+                cursor.execute("""
+                    SELECT SUM(CASE WHEN is_completed = TRUE THEN 1 ELSE 0 END)
+                    FROM tasks
+                    WHERE user_id = %s AND created_at >= %s AND created_at < %s
+                """, (user_id, start.isoformat(), end.isoformat()))
+                tasks_completed = cursor.fetchone()[0] or 0
+                
+                return habits_completed, tasks_completed
             
-            cursor.execute("""
-                SELECT SUM(CASE WHEN is_completed = TRUE THEN 1 ELSE 0 END)
-                FROM tasks
-                WHERE user_id = %s AND created_at >= %s AND created_at < %s
-            """, (user_id, start.isoformat(), end.isoformat()))
-            tasks_completed = cursor.fetchone()[0] or 0
-            
-            return habits_completed, tasks_completed
-        
-        current_habits, current_tasks = get_period_stats(current_start, current_end)
-        previous_habits, previous_tasks = get_period_stats(previous_start, previous_end)
-        
-        conn.close()
+            current_habits, current_tasks = get_period_stats(current_start, current_end)
+            previous_habits, previous_tasks = get_period_stats(previous_start, previous_end)
         
         # Calculate percentage changes
         habits_change = round(((current_habits - previous_habits) / max(previous_habits, 1)) * 100) if previous_habits > 0 else 0
@@ -369,76 +345,72 @@ class ReportGenerator:
     
     def get_weekly_stats(self, user_id: int) -> Dict[str, Any]:
         """Calculate statistics for the last 7 days."""
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         today = datetime.date.today()
         week_ago = today - datetime.timedelta(days=7)
         
-        # Get habit completion stats
-        cursor.execute("""
-            SELECT COUNT(*) as total_completions
-            FROM habit_logs hl
-            JOIN habits h ON hl.habit_id = h.id
-            WHERE h.user_id = %s AND hl.completed_date >= %s
-        """, (user_id, week_ago.isoformat()))
-        habit_completions = cursor.fetchone()[0] or 0
-        
-        # Get total habits
-        cursor.execute("SELECT COUNT(*) FROM habits WHERE user_id = %s", (user_id,))
-        total_habits = cursor.fetchone()[0] or 1
-        
-        # Calculate consistency (completions / (habits * 7 days))
-        expected_completions = total_habits * 7
-        consistency = round((habit_completions / max(expected_completions, 1)) * 100)
-        
-        # Get task stats
-        cursor.execute("""
-            SELECT 
-                COUNT(*) as total,
-                SUM(CASE WHEN is_completed = TRUE THEN 1 ELSE 0 END) as completed
-            FROM tasks 
-            WHERE user_id = %s AND created_at >= %s
-        """, (user_id, week_ago.isoformat()))
-        task_row = cursor.fetchone()
-        tasks_total = task_row[0] or 0
-        tasks_completed = task_row[1] or 0
-        
-        # Get daily breakdown for chart
-        daily_stats = []
-        for i in range(7):
-            day = week_ago + datetime.timedelta(days=i+1)
+        with get_db_cursor(dictionary=False) as (cursor, conn):
+            # Get habit completion stats
             cursor.execute("""
-                SELECT COUNT(*) FROM habit_logs hl
+                SELECT COUNT(*) as total_completions
+                FROM habit_logs hl
                 JOIN habits h ON hl.habit_id = h.id
-                WHERE h.user_id = %s AND hl.completed_date = %s
-            """, (user_id, day.isoformat()))
-            count = cursor.fetchone()[0] or 0
-            percentage = round((count / max(total_habits, 1)) * 100)
-            daily_stats.append({
-                "date": day.strftime("%a"),
-                "completions": count,
-                "percentage": percentage
-            })
-        
-        # Get habit-wise breakdown
-        cursor.execute("""
-            SELECT h.name, h.color, COUNT(hl.id) as completions
-            FROM habits h
-            LEFT JOIN habit_logs hl ON h.id = hl.habit_id AND hl.completed_date >= %s
-            WHERE h.user_id = %s
-            GROUP BY h.id
-        """, (week_ago.isoformat(), user_id))
-        habits_breakdown = []
-        for row in cursor.fetchall():
-            habits_breakdown.append({
-                "name": row[0],
-                "color": row[1],
-                "completions": row[2] or 0,
-                "out_of": 7
-            })
-        
-        conn.close()
+                WHERE h.user_id = %s AND hl.completed_date >= %s
+            """, (user_id, week_ago.isoformat()))
+            habit_completions = cursor.fetchone()[0] or 0
+            
+            # Get total habits
+            cursor.execute("SELECT COUNT(*) FROM habits WHERE user_id = %s", (user_id,))
+            total_habits = cursor.fetchone()[0] or 1
+            
+            # Calculate consistency (completions / (habits * 7 days))
+            expected_completions = total_habits * 7
+            consistency = round((habit_completions / max(expected_completions, 1)) * 100)
+            
+            # Get task stats
+            cursor.execute("""
+                SELECT 
+                    COUNT(*) as total,
+                    SUM(CASE WHEN is_completed = TRUE THEN 1 ELSE 0 END) as completed
+                FROM tasks 
+                WHERE user_id = %s AND created_at >= %s
+            """, (user_id, week_ago.isoformat()))
+            task_row = cursor.fetchone()
+            tasks_total = task_row[0] or 0
+            tasks_completed = task_row[1] or 0
+            
+            # Get daily breakdown for chart
+            daily_stats = []
+            for i in range(7):
+                day = week_ago + datetime.timedelta(days=i+1)
+                cursor.execute("""
+                    SELECT COUNT(*) FROM habit_logs hl
+                    JOIN habits h ON hl.habit_id = h.id
+                    WHERE h.user_id = %s AND hl.completed_date = %s
+                """, (user_id, day.isoformat()))
+                count = cursor.fetchone()[0] or 0
+                percentage = round((count / max(total_habits, 1)) * 100)
+                daily_stats.append({
+                    "date": day.strftime("%a"),
+                    "completions": count,
+                    "percentage": percentage
+                })
+            
+            # Get habit-wise breakdown
+            cursor.execute("""
+                SELECT h.name, h.color, COUNT(hl.id) as completions
+                FROM habits h
+                LEFT JOIN habit_logs hl ON h.id = hl.habit_id AND hl.completed_date >= %s
+                WHERE h.user_id = %s
+                GROUP BY h.id
+            """, (week_ago.isoformat(), user_id))
+            habits_breakdown = []
+            for row in cursor.fetchall():
+                habits_breakdown.append({
+                    "name": row[0],
+                    "color": row[1],
+                    "completions": row[2] or 0,
+                    "out_of": 7
+                })
         
         return {
             "period": "weekly",
@@ -456,73 +428,69 @@ class ReportGenerator:
     
     def get_monthly_stats(self, user_id: int) -> Dict[str, Any]:
         """Calculate statistics for the last 30 days."""
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         today = datetime.date.today()
         month_ago = today - datetime.timedelta(days=30)
         
-        # Similar to weekly but for 30 days
-        cursor.execute("""
-            SELECT COUNT(*) as total_completions
-            FROM habit_logs hl
-            JOIN habits h ON hl.habit_id = h.id
-            WHERE h.user_id = %s AND hl.completed_date >= %s
-        """, (user_id, month_ago.isoformat()))
-        habit_completions = cursor.fetchone()[0] or 0
-        
-        cursor.execute("SELECT COUNT(*) FROM habits WHERE user_id = %s", (user_id,))
-        total_habits = cursor.fetchone()[0] or 1
-        
-        expected_completions = total_habits * 30
-        consistency = round((habit_completions / max(expected_completions, 1)) * 100)
-        
-        cursor.execute("""
-            SELECT 
-                COUNT(*) as total,
-                SUM(CASE WHEN is_completed = TRUE THEN 1 ELSE 0 END) as completed
-            FROM tasks 
-            WHERE user_id = %s AND created_at >= %s
-        """, (user_id, month_ago.isoformat()))
-        task_row = cursor.fetchone()
-        tasks_total = task_row[0] or 0
-        tasks_completed = task_row[1] or 0
-        
-        # Weekly breakdown for monthly chart
-        weekly_stats = []
-        for week in range(4):
-            week_start = month_ago + datetime.timedelta(days=week*7)
-            week_end = week_start + datetime.timedelta(days=7)
+        with get_db_cursor(dictionary=False) as (cursor, conn):
+            # Similar to weekly but for 30 days
             cursor.execute("""
-                SELECT COUNT(*) FROM habit_logs hl
+                SELECT COUNT(*) as total_completions
+                FROM habit_logs hl
                 JOIN habits h ON hl.habit_id = h.id
-                WHERE h.user_id = %s AND hl.completed_date >= %s AND hl.completed_date < %s
-            """, (user_id, week_start.isoformat(), week_end.isoformat()))
-            count = cursor.fetchone()[0] or 0
-            weekly_stats.append({
-                "week": f"Week {week + 1}",
-                "completions": count,
-                "percentage": round((count / max(total_habits * 7, 1)) * 100)
-            })
-        
-        # Get habit-wise breakdown
-        cursor.execute("""
-            SELECT h.name, h.color, COUNT(hl.id) as completions
-            FROM habits h
-            LEFT JOIN habit_logs hl ON h.id = hl.habit_id AND hl.completed_date >= %s
-            WHERE h.user_id = %s
-            GROUP BY h.id
-        """, (month_ago.isoformat(), user_id))
-        habits_breakdown = []
-        for row in cursor.fetchall():
-            habits_breakdown.append({
-                "name": row[0],
-                "color": row[1],
-                "completions": row[2] or 0,
-                "out_of": 30
-            })
-        
-        conn.close()
+                WHERE h.user_id = %s AND hl.completed_date >= %s
+            """, (user_id, month_ago.isoformat()))
+            habit_completions = cursor.fetchone()[0] or 0
+            
+            cursor.execute("SELECT COUNT(*) FROM habits WHERE user_id = %s", (user_id,))
+            total_habits = cursor.fetchone()[0] or 1
+            
+            expected_completions = total_habits * 30
+            consistency = round((habit_completions / max(expected_completions, 1)) * 100)
+            
+            cursor.execute("""
+                SELECT 
+                    COUNT(*) as total,
+                    SUM(CASE WHEN is_completed = TRUE THEN 1 ELSE 0 END) as completed
+                FROM tasks 
+                WHERE user_id = %s AND created_at >= %s
+            """, (user_id, month_ago.isoformat()))
+            task_row = cursor.fetchone()
+            tasks_total = task_row[0] or 0
+            tasks_completed = task_row[1] or 0
+            
+            # Weekly breakdown for monthly chart
+            weekly_stats = []
+            for week in range(4):
+                week_start = month_ago + datetime.timedelta(days=week*7)
+                week_end = week_start + datetime.timedelta(days=7)
+                cursor.execute("""
+                    SELECT COUNT(*) FROM habit_logs hl
+                    JOIN habits h ON hl.habit_id = h.id
+                    WHERE h.user_id = %s AND hl.completed_date >= %s AND hl.completed_date < %s
+                """, (user_id, week_start.isoformat(), week_end.isoformat()))
+                count = cursor.fetchone()[0] or 0
+                weekly_stats.append({
+                    "week": f"Week {week + 1}",
+                    "completions": count,
+                    "percentage": round((count / max(total_habits * 7, 1)) * 100)
+                })
+            
+            # Get habit-wise breakdown
+            cursor.execute("""
+                SELECT h.name, h.color, COUNT(hl.id) as completions
+                FROM habits h
+                LEFT JOIN habit_logs hl ON h.id = hl.habit_id AND hl.completed_date >= %s
+                WHERE h.user_id = %s
+                GROUP BY h.id
+            """, (month_ago.isoformat(), user_id))
+            habits_breakdown = []
+            for row in cursor.fetchall():
+                habits_breakdown.append({
+                    "name": row[0],
+                    "color": row[1],
+                    "completions": row[2] or 0,
+                    "out_of": 30
+                })
         
         return {
             "period": "monthly",
