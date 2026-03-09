@@ -47,38 +47,39 @@ def email_status():
 
 @reports_bp.route('/api/reports/smtp-test', methods=['GET'])
 def smtp_test():
-    """Bare-minimum SMTP test — no auth required, no DB, no heavy imports."""
+    """Bare-minimum SendGrid API test — no auth required, no DB, no heavy imports."""
     try:
-        import smtplib
+        import requests as http_req
         import os
-        from email.mime.text import MIMEText
 
-        host = os.environ.get('SMTP_HOST', 'smtp.sendgrid.net')
-        port = int(os.environ.get('SMTP_PORT', '587'))
-        user = os.environ.get('SMTP_USER', '')
-        password = os.environ.get('SMTP_PASSWORD', '')
-        from_email = os.environ.get('SMTP_FROM_EMAIL', user)
+        api_key = os.environ.get('SMTP_PASSWORD', '')
+        from_email = os.environ.get('SMTP_FROM_EMAIL', 'varuuu009@gmail.com')
         to_email = 'varuuu009@gmail.com'
 
-        if not user or not password:
-            return jsonify({"success": False, "message": "SMTP_USER or SMTP_PASSWORD not set in env"}), 500
+        if not api_key:
+            return jsonify({"success": False, "message": "SMTP_PASSWORD (SendGrid API key) not set"}), 500
 
-        msg = MIMEText('<h1>SMTP Test</h1><p>If you see this, email sending works from Render!</p>', 'html')
-        msg['Subject'] = 'Altron SMTP Test'
-        msg['From'] = from_email
-        msg['To'] = to_email
+        payload = {
+            "personalizations": [{"to": [{"email": to_email}]}],
+            "from": {"email": from_email, "name": "Altron Test"},
+            "subject": "Altron SendGrid API Test",
+            "content": [{"type": "text/html", "value": "<h1>SendGrid API Test</h1><p>If you see this, email sending works from Render!</p>"}]
+        }
 
-        with smtplib.SMTP(host, port, timeout=15) as server:
-            server.starttls()
-            server.login(user, password)
-            server.send_message(msg)
+        resp = http_req.post(
+            "https://api.sendgrid.com/v3/mail/send",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json=payload,
+            timeout=15
+        )
 
-        return jsonify({"success": True, "message": f"SMTP test email sent to {to_email}"})
+        if resp.status_code in (200, 201, 202):
+            return jsonify({"success": True, "message": f"SendGrid API test email sent to {to_email}", "status_code": resp.status_code})
+        else:
+            return jsonify({"success": False, "message": f"SendGrid API error", "status_code": resp.status_code, "body": resp.text}), 500
 
-    except smtplib.SMTPAuthenticationError as e:
-        return jsonify({"success": False, "message": f"SMTP Auth Failed: {e}"}), 500
     except Exception as e:
-        return jsonify({"success": False, "message": f"SMTP Error: {e}", "traceback": traceback.format_exc()}), 500
+        return jsonify({"success": False, "message": f"Error: {e}", "traceback": traceback.format_exc()}), 500
 
 
 # ─── Report Preview (HTML) ──────────────────────────────────────────────────

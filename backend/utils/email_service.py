@@ -1,37 +1,49 @@
 """
 Altron - Email Service Module
-Sends reports and notifications via email using SMTP.
+Sends reports and notifications via SendGrid HTTP API.
+(Render blocks outbound SMTP on port 587, so we use the REST API instead.)
 """
 
-import smtplib
 import os
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
+import base64
+import json
 from typing import Optional
+
+try:
+    import requests as http_requests
+    REQUESTS_AVAILABLE = True
+except ImportError:
+    REQUESTS_AVAILABLE = False
+    print("⚠️ 'requests' library not installed. Email sending disabled.")
+
 from config import Config
 
 
 class EmailService:
-    """Handles sending emails via SMTP."""
+    """Handles sending emails via SendGrid HTTP API."""
+    
+    SENDGRID_API_URL = "https://api.sendgrid.com/v3/mail/send"
     
     def __init__(self):
         # Load configuration from Config class
         self.smtp_host = Config.SMTP_HOST
         self.smtp_port = Config.SMTP_PORT
         self.smtp_user = Config.SMTP_USER
-        self.smtp_password = Config.SMTP_PASSWORD
+        self.smtp_password = Config.SMTP_PASSWORD  # This is the SendGrid API key (SG.xxx)
         self.from_name = Config.SMTP_FROM_NAME
         self.from_email = Config.SMTP_FROM_EMAIL or self.smtp_user
         
+        # The SendGrid API key is stored in SMTP_PASSWORD (starts with SG.)
+        self.api_key = self.smtp_password
+        
         # Check if configured
-        self.is_configured = bool(self.smtp_user and self.smtp_password)
+        self.is_configured = bool(self.api_key and REQUESTS_AVAILABLE)
         
         if not self.is_configured:
-            print("⚠️ Email service not configured. Add SMTP credentials to .env file:")
-            print("   SMTP_USER=your.email@gmail.com")
-            print("   SMTP_PASSWORD=your-app-password")
-            print("   For Gmail: Create an App Password at https://myaccount.google.com/apppasswords")
+            if not REQUESTS_AVAILABLE:
+                print("⚠️ Email service disabled: 'requests' library not installed")
+            elif not self.api_key:
+                print("⚠️ Email service not configured. Set SMTP_PASSWORD to your SendGrid API key.")
     
     def send_email(
         self,
@@ -42,64 +54,76 @@ class EmailService:
         pdf_attachment: Optional[str] = None
     ) -> bool:
         """
-        Send an email with optional PDF attachment.
+        Send an email via SendGrid HTTP API.
         
         Args:
             to_email: Recipient email address
             subject: Email subject line
             html_content: HTML body content
-            text_content: Plain text fallback (auto-generated if not provided)
+            text_content: Plain text fallback
             pdf_attachment: Path to PDF file to attach
             
         Returns:
             True if sent successfully, False otherwise
         """
         if not self.is_configured:
-            print(f"❌ Cannot send email - SMTP not configured")
+            print(f"❌ Cannot send email - SendGrid API not configured")
             return False
         
         try:
-            # Create message
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = subject
-            msg['From'] = f"{self.from_name} <{self.from_email}>"
-            msg['To'] = to_email
+            # Build the SendGrid API payload
+            payload = {
+                "personalizations": [{"to": [{"email": to_email}]}],
+                "from": {"email": self.from_email, "name": self.from_name},
+                "subject": subject,
+                "content": []
+            }
             
-            # Plain text version (fallback)
-            if not text_content:
-                text_content = "Please view this email in an HTML-capable email client."
-            msg.attach(MIMEText(text_content, 'plain'))
+            # Add text content
+            if text_content:
+                payload["content"].append({"type": "text/plain", "value": text_content})
+            else:
+                payload["content"].append({"type": "text/plain", "value": "Please view this email in an HTML-capable email client."})
             
-            # HTML version
-            msg.attach(MIMEText(html_content, 'html'))
+            # Add HTML content
+            payload["content"].append({"type": "text/html", "value": html_content})
             
-            # PDF attachment if provided
+            # Add PDF attachment if provided
             if pdf_attachment and os.path.exists(pdf_attachment):
                 with open(pdf_attachment, 'rb') as f:
-                    pdf = MIMEApplication(f.read(), _subtype='pdf')
-                    pdf.add_header(
-                        'Content-Disposition', 
-                        'attachment', 
-                        filename=os.path.basename(pdf_attachment)
-                    )
-                    msg.attach(pdf)
-                    print(f"📎 Attached PDF: {os.path.basename(pdf_attachment)}")
+                    pdf_data = base64.b64encode(f.read()).decode('utf-8')
+                payload["attachments"] = [{
+                    "content": pdf_data,
+                    "filename": os.path.basename(pdf_attachment),
+                    "type": "application/pdf",
+                    "disposition": "attachment"
+                }]
+                print(f"📎 Attached PDF: {os.path.basename(pdf_attachment)}")
             
-            # Connect and send (30s timeout to avoid hanging gunicorn workers)
-            with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=30) as server:
-                server.starttls()
-                server.login(self.smtp_user, self.smtp_password)
-                server.send_message(msg)
+            # Send via SendGrid HTTP API
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
             
-            print(f"✅ Email sent to {to_email}: {subject}")
-            return True
+            response = http_requests.post(
+                self.SENDGRID_API_URL,
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
             
-        except smtplib.SMTPAuthenticationError:
-            print(f"❌ SMTP Authentication failed. Check credentials.")
-            print("   For Gmail: Use an App Password, not your regular password.")
-            return False
+            if response.status_code in (200, 201, 202):
+                print(f"✅ Email sent to {to_email}: {subject}")
+                return True
+            else:
+                print(f"❌ SendGrid API error {response.status_code}: {response.text}")
+                return False
+            
         except Exception as e:
-            print(f"❌ Failed to send email: {e}")
+            print(f"❌ Failed to send email via SendGrid API: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def send_weekly_report(self, to_email: str, username: str, html_report: str, pdf_path: Optional[str] = None) -> bool:
