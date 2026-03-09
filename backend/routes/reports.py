@@ -148,9 +148,9 @@ def download_report(period):
 @reports_bp.route('/api/reports/send-now', methods=['POST'])
 @login_required
 def send_report_now():
-    """Manually send a report to the current user via email."""
+    """Manually send a report to the current user via email (background thread)."""
     try:
-        from utils.report_generator import report_generator
+        import threading
         from utils.email_service import EmailService
         from utils.db import get_db_cursor
 
@@ -162,7 +162,7 @@ def send_report_now():
 
         user_id = current_user.id
 
-        # Get user email
+        # Get user email before spawning thread
         with get_db_cursor(dictionary=False) as (cursor, conn):
             cursor.execute("SELECT username, email FROM users WHERE id = %s", (user_id,))
             row = cursor.fetchone()
@@ -172,39 +172,40 @@ def send_report_now():
 
         username, email = row[0], row[1]
 
-        # Create fresh email service instance
         email_service = EmailService()
-
         if not email_service.is_configured:
-            return jsonify({
-                "success": False,
-                "message": "Email service not configured. Check SMTP settings.",
-                "debug": {
-                    "smtp_host": email_service.smtp_host,
-                    "smtp_user_set": bool(email_service.smtp_user),
-                    "smtp_password_set": bool(email_service.smtp_password)
-                }
-            }), 500
+            return jsonify({"success": False, "message": "Email service not configured"}), 500
 
-        # Generate and send
-        html_report = report_generator.generate_html_report(user_id, period)
-        pdf_path = report_generator.generate_pdf(user_id, period)
+        def _send_report_background(uid, uname, uemail, report_period):
+            try:
+                from utils.report_generator import report_generator
+                from utils.email_service import EmailService as ES
 
-        if period == 'weekly':
-            sent = email_service.send_weekly_report(email, username, html_report, pdf_path)
-        else:
-            sent = email_service.send_monthly_report(email, username, html_report, pdf_path)
+                svc = ES()
+                html_report = report_generator.generate_html_report(uid, report_period)
+                pdf_path = report_generator.generate_pdf(uid, report_period)
 
-        if sent:
-            return jsonify({
-                "success": True,
-                "message": f"{period.capitalize()} report sent to {email}"
-            })
-        else:
-            return jsonify({
-                "success": False,
-                "message": "SMTP send_email returned False. Check server logs for SMTP errors."
-            }), 500
+                if report_period == 'weekly':
+                    sent = svc.send_weekly_report(uemail, uname, html_report, pdf_path)
+                else:
+                    sent = svc.send_monthly_report(uemail, uname, html_report, pdf_path)
+
+                print(f"[Report manual] period={report_period} sent={sent} to {uemail}")
+            except Exception as ex:
+                print(f"[Report manual] ERROR: {ex}")
+                traceback.print_exc()
+
+        t = threading.Thread(
+            target=_send_report_background,
+            args=(user_id, username, email, period),
+            daemon=True
+        )
+        t.start()
+
+        return jsonify({
+            "success": True,
+            "message": f"{period.capitalize()} report is being generated and will arrive in your inbox ({email}) within 60 seconds"
+        })
 
     except Exception as e:
         return jsonify({
