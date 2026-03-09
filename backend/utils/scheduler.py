@@ -142,10 +142,11 @@ class ReportScheduler:
         if self.thread is None:
             self.thread = threading.Thread(target=self._run, daemon=True)
             self.thread.start()
-            print("🕒 Scheduler Started: Automated Reporting System is ONLINE.")
-            print(f"   📅 Weekly reports:  Every Sunday at {self.weekly_hour:02d}:{self.weekly_minute:02d}")
-            print(f"   📅 Monthly reports: 1st of each month at {self.monthly_hour:02d}:{self.monthly_minute:02d}")
-            print(f"   ⚡ Day Pulse:       Every night at {self.pulse_hour:02d}:{self.pulse_minute:02d}")
+            now_utc = datetime.datetime.now(datetime.timezone.utc)
+            print(f"🕒 Scheduler Started: Automated Reporting System is ONLINE. (UTC: {now_utc.strftime('%H:%M:%S')})")
+            print(f"   📅 Weekly reports:  Every Sunday at {self.weekly_hour:02d}:{self.weekly_minute:02d} UTC")
+            print(f"   📅 Monthly reports: 1st of each month at {self.monthly_hour:02d}:{self.monthly_minute:02d} UTC")
+            print(f"   ⚡ Day Pulse:       Every night at {self.pulse_hour:02d}:{self.pulse_minute:02d} UTC")
 
     def stop(self):
         """Stop the scheduler thread."""
@@ -162,7 +163,7 @@ class ReportScheduler:
         last_pulse_run = None
         
         while not self.stop_event.is_set():
-            now = datetime.datetime.now()
+            now = datetime.datetime.now(datetime.timezone.utc)
             today = now.date()
             
             # Weekly Report: Sunday at specified hour and minute
