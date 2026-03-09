@@ -45,6 +45,42 @@ def email_status():
         }), 500
 
 
+@reports_bp.route('/api/reports/smtp-test', methods=['GET'])
+def smtp_test():
+    """Bare-minimum SMTP test — no auth required, no DB, no heavy imports."""
+    try:
+        import smtplib
+        import os
+        from email.mime.text import MIMEText
+
+        host = os.environ.get('SMTP_HOST', 'smtp.sendgrid.net')
+        port = int(os.environ.get('SMTP_PORT', '587'))
+        user = os.environ.get('SMTP_USER', '')
+        password = os.environ.get('SMTP_PASSWORD', '')
+        from_email = os.environ.get('SMTP_FROM_EMAIL', user)
+        to_email = 'varuuu009@gmail.com'
+
+        if not user or not password:
+            return jsonify({"success": False, "message": "SMTP_USER or SMTP_PASSWORD not set in env"}), 500
+
+        msg = MIMEText('<h1>SMTP Test</h1><p>If you see this, email sending works from Render!</p>', 'html')
+        msg['Subject'] = 'Altron SMTP Test'
+        msg['From'] = from_email
+        msg['To'] = to_email
+
+        with smtplib.SMTP(host, port, timeout=15) as server:
+            server.starttls()
+            server.login(user, password)
+            server.send_message(msg)
+
+        return jsonify({"success": True, "message": f"SMTP test email sent to {to_email}"})
+
+    except smtplib.SMTPAuthenticationError as e:
+        return jsonify({"success": False, "message": f"SMTP Auth Failed: {e}"}), 500
+    except Exception as e:
+        return jsonify({"success": False, "message": f"SMTP Error: {e}", "traceback": traceback.format_exc()}), 500
+
+
 # ─── Report Preview (HTML) ──────────────────────────────────────────────────
 
 @reports_bp.route('/api/reports/preview/<period>', methods=['GET'])
