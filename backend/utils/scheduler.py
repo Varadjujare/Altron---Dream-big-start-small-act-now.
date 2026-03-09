@@ -156,7 +156,7 @@ class ReportScheduler:
             print("🛑 Scheduler stopped.")
 
     def _run(self):
-        """Main scheduler loop."""
+        """Main scheduler loop — handles Render sleep/wake cycles."""
         print("🕒 Scheduler: Monitoring time for automated tasks...")
         last_weekly_run = None
         last_monthly_run = None
@@ -165,32 +165,37 @@ class ReportScheduler:
         while not self.stop_event.is_set():
             now = datetime.datetime.now(datetime.timezone.utc)
             today = now.date()
+            current_minutes = now.hour * 60 + now.minute  # minutes since midnight UTC
             
-            # Weekly Report: Sunday at specified hour and minute
-            if (now.weekday() == self.weekly_day and 
-                now.hour == self.weekly_hour and 
-                now.minute == self.weekly_minute and 
-                last_weekly_run != today):
-                generate_and_send_reports("weekly")
-                last_weekly_run = today
-            
-            # Monthly Report: 1st of month at specified hour and minute
-            if (now.day == self.monthly_day and 
-                now.hour == self.monthly_hour and 
-                now.minute == self.monthly_minute and 
-                last_monthly_run != today):
-                generate_and_send_reports("monthly")
-                last_monthly_run = today
-
-            # ⚡ Day Pulse: Every night at 10 PM
-            if (now.hour == self.pulse_hour and
-                now.minute == self.pulse_minute and
+            # ── Day Pulse: every night at pulse_hour:pulse_minute UTC ──
+            pulse_target = self.pulse_hour * 60 + self.pulse_minute
+            # Fire if we're within 0-30 minutes AFTER the target time (catches wake-ups)
+            if (0 <= current_minutes - pulse_target <= 30 and
                 last_pulse_run != today):
+                print(f"⚡ Day Pulse triggered at UTC {now.strftime('%H:%M')}")
                 generate_and_send_day_pulse()
                 last_pulse_run = today
 
-            # Sleep for 20 seconds between checks (3x per minute = never misses trigger)
-            time.sleep(20)
+            # ── Weekly Report: Sunday at weekly_hour:weekly_minute UTC ──
+            weekly_target = self.weekly_hour * 60 + self.weekly_minute
+            if (now.weekday() == self.weekly_day and
+                0 <= current_minutes - weekly_target <= 30 and
+                last_weekly_run != today):
+                print(f"📅 Weekly report triggered at UTC {now.strftime('%H:%M')}")
+                generate_and_send_reports("weekly")
+                last_weekly_run = today
+            
+            # ── Monthly Report: 1st of month at monthly_hour:monthly_minute UTC ──
+            monthly_target = self.monthly_hour * 60 + self.monthly_minute
+            if (now.day == self.monthly_day and
+                0 <= current_minutes - monthly_target <= 30 and
+                last_monthly_run != today):
+                print(f"📅 Monthly report triggered at UTC {now.strftime('%H:%M')}")
+                generate_and_send_reports("monthly")
+                last_monthly_run = today
+
+            # Sleep 30 seconds between checks
+            time.sleep(30)
     
     def trigger_now(self, report_type: str = "weekly"):
         """Manually trigger a report generation (for testing)."""

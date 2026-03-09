@@ -11,6 +11,15 @@ from flask_login import login_required, current_user
 reports_bp = Blueprint('reports', __name__)
 
 
+# ─── Keep-Alive Endpoint (prevents Render free tier from sleeping) ───────────
+
+@reports_bp.route('/api/keep-alive', methods=['GET'])
+def keep_alive():
+    """External cron services (cron-job.org) ping this every 14 min to keep Render awake."""
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    return jsonify({"status": "alive", "utc": now_utc.strftime("%H:%M:%S")})
+
+
 # ─── Diagnostic Endpoint (no auth, for quick debugging) ─────────────────────
 
 @reports_bp.route('/api/reports/email-status', methods=['GET'])
